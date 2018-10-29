@@ -9,6 +9,8 @@
 #include <glm/vec2.hpp>
 #include <glm/vec4.hpp>
 
+#include "NoCopy.hh"
+
 namespace neat {
 
 class Font : private NoCopy {
