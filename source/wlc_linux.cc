@@ -80,7 +80,8 @@ class WaylandWindow : private NoCopy {
                                          0, 0, image->width, image->height);
                                      wl_surface_commit(window->cursor_surface_);
                                  },
-                                    nullptr,
+                                    [](void*, wl_pointer*, uint32_t,
+                                        wl_surface*) {},
                                     [](void* data, wl_pointer*, uint32_t,
                                         wl_fixed_t sx, wl_fixed_t sy) {
                                         WaylandWindow* window =
