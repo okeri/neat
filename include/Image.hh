@@ -11,12 +11,11 @@ class Image {
     std::size_t size_;
     uint32_t width_;
     uint32_t height_;
-    int fmt_;
 
     void load(const void* data, std::size_t size) noexcept;
 
   public:
-    Image(const void* data, std::size_t size) noexcept;
+    Image(const void* data, std::size_t size, bool vflip = false) noexcept;
     Image(Image&& other) noexcept;
     uint8_t* data() const;
     uint32_t width() const;

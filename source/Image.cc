@@ -26,8 +26,18 @@ void cbread(void* data, uint8_t* dst, size_t size) {
 
 namespace neat {
 
-Image::Image(const void* data, size_t size) noexcept {
+Image::Image(const void* data, size_t size, bool vflip) noexcept {
     load(data, size);
+    if (valid() && vflip) {
+        uint8_t* flipped = new uint8_t[size_];
+        auto stride = size_ / height_;
+        auto from = data_, to = flipped + size_ - stride;
+        for (; to > flipped; from += stride, to -= stride) {
+            std::copy(from, from + stride, to);
+        }
+        delete[] data_;
+        data_ = flipped;
+    }
 }
 
 Image::Image(Image&& other) noexcept {
@@ -36,7 +46,6 @@ Image::Image(Image&& other) noexcept {
         size_ = other.size_;
         width_ = other.width_;
         height_ = other.height_;
-        fmt_ = other.fmt_;
         other.size_ = 0;
     }
 }
@@ -58,30 +67,27 @@ void Image::load(const void* data, size_t size) noexcept {
     }
 
     // read image header
-    int bit_depth;
+    int bit_depth, fmt;
     png_read_info(pngPtr, infoPtr);
-    png_get_IHDR(pngPtr, infoPtr, &width_, &height_, &bit_depth, &fmt_, NULL,
-        NULL, NULL);
+    png_get_IHDR(
+        pngPtr, infoPtr, &width_, &height_, &bit_depth, &fmt, NULL, NULL, NULL);
 
     if (png_get_valid(pngPtr, infoPtr, PNG_INFO_tRNS))
         png_set_tRNS_to_alpha(pngPtr);
 
-    if (fmt_ == PNG_COLOR_TYPE_GRAY && bit_depth < 8)
+    if (fmt == PNG_COLOR_TYPE_GRAY && bit_depth < 8)
         png_set_expand_gray_1_2_4_to_8(pngPtr);
 
-    if (fmt_ == PNG_COLOR_TYPE_PALETTE) {
+    if (fmt == PNG_COLOR_TYPE_PALETTE) {
         png_set_palette_to_rgb(pngPtr);
     }
 
-    if (fmt_ == PNG_COLOR_TYPE_RGBA) {
+    if (fmt == PNG_COLOR_TYPE_RGBA) {
         png_set_strip_alpha(pngPtr);
     }
 
-    // Ensure 8-bit packing
     if (bit_depth < 8) {
         png_set_packing(pngPtr);
-    } else if (bit_depth == 16) {
-        png_set_scale_16(pngPtr);
     }
     png_read_update_info(pngPtr, infoPtr);
 
