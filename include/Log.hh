@@ -11,6 +11,7 @@ class Log : private NoCopy {
     std::ostringstream message_;
 
   public:
+    static inline const char* tag;
     Log() = default;
     ~Log();
 

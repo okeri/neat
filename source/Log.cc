@@ -8,15 +8,13 @@
 #include <iostream>
 #endif
 
-#include <platform.hh>
 #include <Log.hh>
 
 namespace neat {
 
 Log::~Log() {
 #ifdef ANDROID
-    __android_log_print(
-        ANDROID_LOG_INFO, NEAT_APPNAME, "%s", message_.str().c_str());
+    __android_log_print(ANDROID_LOG_INFO, tag, "%s", message_.str().c_str());
 #endif
 
 #ifdef LINUX
