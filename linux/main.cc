@@ -91,7 +91,8 @@ class WaylandWindow : private NoCopy {
                     }
                 }
             },
-            nullptr, nullptr, nullptr, nullptr, nullptr};
+            [](void*, struct wl_pointer*, uint32_t, uint32_t, wl_fixed_t) {},
+            nullptr, nullptr, nullptr, nullptr};
 
         static const wl_seat_listener seat_listener = {
             [](void* data, wl_seat* seat, unsigned caps) {
