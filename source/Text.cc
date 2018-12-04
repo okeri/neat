@@ -73,6 +73,7 @@ void Text::render() {
     program_->use();
     glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 0, 0);
     glDrawArrays(GL_TRIANGLES, 0, count_);
+    glDisable(GL_BLEND);
 }
 
 size_t Text::count() const {
@@ -106,6 +107,7 @@ void Text::draw(std::string_view text, const Font& font, float x, float y) {
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 0, data.data());
     glDrawArrays(GL_TRIANGLES, 0, data.size());
+    glDisable(GL_BLEND);
 }
 
 }  // namespace neat
