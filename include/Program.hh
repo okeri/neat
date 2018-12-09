@@ -26,6 +26,7 @@ class Program : private GLResource {
     Program& operator=(Program&& rhs) noexcept;
     unsigned int uniform(const char* name);
     void use();
+    unsigned int getRawId() const;
 };
 
 }  // namespace neat

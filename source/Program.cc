@@ -21,14 +21,16 @@ GLuint compile(GLenum shaderType, const char* src) {
         glCompileShader(shader);
         GLint compiled = GL_FALSE;
         glGetShaderiv(shader, GL_COMPILE_STATUS, &compiled);
+
+        GLint size;
+        glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &size);
+        if (size) {
+            std::unique_ptr<char[]> buffer = std::make_unique<char[]>(size);
+            glGetShaderInfoLog(shader, size, NULL, buffer.get());
+            Log() << "Error: " << buffer.get();
+        }
+
         if (!compiled) {
-            GLint size;
-            glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &size);
-            if (size) {
-                std::unique_ptr<char[]> buffer = std::make_unique<char[]>(size);
-                glGetShaderInfoLog(shader, size, NULL, buffer.get());
-                Log() << "Error: " << buffer.get();
-            }
             glDeleteShader(shader);
             shader = 0;
         }
@@ -99,6 +101,10 @@ unsigned int Program::uniform(const char* name) {
         }
         return result;
     }
+}
+
+unsigned int Program::getRawId() const {
+    return id_;
 }
 
 }  // namespace neat
