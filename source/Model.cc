@@ -25,27 +25,72 @@ namespace {
 
 // clang-format off
 const char* modelV = GLSL(
+
+struct Material {
+    vec3 diffuse;
+    vec3 ambient;
+    vec3 specular;
+};
+
 layout (location = 0) in vec3 vertex;
 layout (location = 1) in vec3 normal;
 layout (location = 2) in vec2 texcoord;
+
 out vec2 uv;
+out vec3 fragColor;
 
 uniform mat4 MVP;
+uniform mat4 MV;
+uniform mat4 NM;
+
+uniform Material material;
+
+const int maxLightCount = 16;
+uniform int lightCount;
+
+struct Light {
+    vec3 position;
+    vec3 color;
+};
+
+uniform Light lights[maxLightCount];
+
 
 void main() {
     gl_Position = MVP * vec4(vertex, 1.0);
     uv = texcoord;
+
+    vec4 vertPos4 = MV * vec4(vertex, 1.0);
+    vec3 vertPos = vec3(vertPos4) / vertPos4.w;
+    vec3 norm = vec3(NM * vec4(normal, 0.0));
+
+    vec3 color = material.ambient;
+    for (int light = 0; light < lightCount; ++light) {
+        vec3 lightDir = normalize(lights[light].position - vertPos);
+        float lambertian = max(dot(lightDir, norm), 0.0);
+        float specular = 0.0;
+        if (lambertian > 0.0) {
+            vec3 viewDir = normalize(-vertPos);
+            vec3 reflectDir = reflect(-lightDir, norm);
+            float specAngle = max(dot(reflectDir, viewDir), 0.0);
+            specular = specAngle * specAngle;;
+        }
+        color += (material.diffuse  * lambertian +
+           material.specular * specular) * lights[light].color;
+    }
+    fragColor = color;
 }
 );
 
 const char* modelF = GLSL(
 in vec2 uv;
+in vec3 fragColor;
 
-uniform sampler2D texture;
+uniform sampler2D matTex;
 layout (location = 0) out vec4 color;
 
 void main() {
-    color = texture2D(texture, uv);  
+  color = vec4(fragColor, 1.0) * texture(matTex, uv);
 }
 );
 
@@ -170,7 +215,6 @@ class Material : private NoCopy {
     glm::vec3 diffuse;
     glm::vec3 ambient;
     glm::vec3 specular;
-    float specularExponent;
     std::optional<Texture> texture;
 
     Material() : faceCount_(0) {
@@ -180,7 +224,6 @@ class Material : private NoCopy {
         diffuse = rhs.diffuse;
         ambient = rhs.ambient;
         specular = rhs.specular;
-        specularExponent = rhs.specularExponent;
         ibo_ = std::move(rhs.ibo_);
         if (rhs.texture) {
             texture = std::move(*rhs.texture);
@@ -191,7 +234,6 @@ class Material : private NoCopy {
         diffuse = rhs.diffuse;
         ambient = rhs.ambient;
         specular = rhs.specular;
-        specularExponent = rhs.specularExponent;
         if (rhs.texture) {
             texture = std::move(*rhs.texture);
         }
@@ -200,6 +242,15 @@ class Material : private NoCopy {
 
     unsigned faceCount() const {
         return faceCount_;
+    }
+
+    void setUniforms(Program& program) const {
+        glUniform3fv(
+            program.uniform("material.diffuse"), 1, glm::value_ptr(diffuse));
+        glUniform3fv(
+            program.uniform("material.ambient"), 1, glm::value_ptr(ambient));
+        glUniform3fv(
+            program.uniform("material.specular"), 1, glm::value_ptr(specular));
     }
 
     void set(const std::vector<Face>& faces) {
@@ -296,21 +347,22 @@ class Mesh : private GLResource {
         }
     }
 
-    void render(const glm::mat4& mvp) const {
-        glEnable(GL_DEPTH_TEST);
-        program_->use();
-        glUniformMatrix4fv(
-            program_->uniform("MVP"), 1, false, glm::value_ptr(mvp));
-
-        glDisable(GL_BLEND);
-
+    void render() const {
         glBindVertexArray(id_);
         for (const auto& material : materials_) {
             Binder matBinder(material);
+            material.setUniforms(*program_);
             glDrawElements(
                 GL_TRIANGLES, material.faceCount(), GL_UNSIGNED_SHORT, nullptr);
         }
         glBindVertexArray(0);
+    }
+    static unsigned int programId() {
+        return program_->getRawId();
+    }
+
+    static Program& program() {
+        return *program_;
     }
 
     ~Mesh() {
@@ -334,9 +386,7 @@ class Model::Impl {
             auto handleMaterialBlock = [&source, &parentPath, this](
                                            uint32_t len) {
                 Material material;
-                float shininess;
-                source.visitChunks(len, [&source, &parentPath, &material,
-                                            &shininess](
+                source.visitChunks(len, [&source, &parentPath, &material](
                                             const M3dStream::Header& header) {
                     switch (header.id) {
                         case m3d::Chunk::TextureMap: {
@@ -345,6 +395,7 @@ class Model::Impl {
                             std::vector<uint8_t> buffer;
                             Asset asset(parentPath.append(filename).string());
                             if (asset.read(buffer) != Asset::Error) {
+                                // TODO: texture cache
                                 material.texture = Texture(
                                     Image(buffer.data(), buffer.size()));
                             } else {
@@ -365,20 +416,10 @@ class Model::Impl {
                             material.specular = source.readVecValue(header.len);
                             return true;
 
-                        case m3d::Chunk::SpecularExponent:
-                            material.specularExponent =
-                                source.readPercentValue(header.len) * 128.f;
-                            return true;
-
-                        case m3d::Chunk::Shininess:
-                            shininess = source.readPercentValue(header.len);
-                            return true;
-
                         default:
                             return false;
                     }
                 });
-                material.specular *= shininess;
                 materials_.push_back(std::move(material));
                 return true;
             };
@@ -446,6 +487,9 @@ class Model::Impl {
                             mesh.texcoords.resize(count);
                             source.read(mesh.texcoords.data(),
                                 count * sizeof(glm::vec2));
+                            for (auto& v : mesh.texcoords) {
+                                v.y = 1 - v.y;
+                            }
                             return true;
 
                         default:
@@ -454,8 +498,9 @@ class Model::Impl {
                 });
 
                 if (mesh.valid()) {
+                    std::vector<Face> result;
                     for (size_t mat = 0; mat != materialFaces.size(); ++mat) {
-                        std::vector<Face> result;
+                        result.reserve(materialFaces[mat].size() * 3);
                         for (size_t face = 0; face != materialFaces[mat].size();
                              ++face) {
                             result.push_back(mesh.faces[face].x);
@@ -463,6 +508,7 @@ class Model::Impl {
                             result.push_back(mesh.faces[face].z);
                         }
                         materials_[mat].set(result);
+                        result.clear();
                     }
                     meshes_.emplace_back(mesh, materials_);
                 }
@@ -507,9 +553,9 @@ class Model::Impl {
         }
     }
 
-    void render(const glm::mat4& mvp) const {
+    void render() const {
         for (const auto& mesh : meshes_) {
-            mesh.render(mvp);
+            mesh.render();
         }
     }
 
@@ -531,12 +577,77 @@ Model::Model(Model&& rhs) noexcept : pImpl_(std::move(rhs.pImpl_)) {
 Model::~Model() {
 }
 
-void Model::render(const glm::mat4& mvp) const {
-    pImpl_->render(mvp);
+void Model::render(
+    const glm::mat4& mvp, const glm::mat4& mv, const glm::mat4& nm) const {
+    auto& program = Mesh::program();
+    program.use();
+    glUniform1i(program.uniform("matTex"), 0);
+    glUniformMatrix4fv(program.uniform("MVP"), 1, false, glm::value_ptr(mvp));
+    glUniformMatrix4fv(program.uniform("MV"), 1, false, glm::value_ptr(mv));
+    glUniformMatrix4fv(program.uniform("NM"), 1, false, glm::value_ptr(nm));
+
+    pImpl_->render();
 }
 
 bool Model::valid() const {
     return pImpl_->valid();
+}
+
+LightManager::Light::Light(const glm::vec3& pos, const glm::vec3& col) :
+    position_(pos),
+    color_(col) {
+}
+
+LightManager& LightManager::instance() {
+    static LightManager self;
+    auto program = Mesh::programId();
+    for (auto index = 0u; index < maxLightCount; ++index) {
+        auto prefix = std::string("lights[") + std::to_string(index) + "].";
+        self.cache_[index].position =
+            glGetUniformLocation(program, (prefix + "position").c_str());
+        self.cache_[index].color =
+            glGetUniformLocation(program, (prefix + "color").c_str());
+    }
+    return self;
+}
+
+void LightManager::push(const Light& light) {
+    auto& program = Mesh::program();
+    program.use();
+    auto& self = instance();
+    auto index = self.lights_.size();
+    if (index + 1 > maxLightCount) {
+        throw std::logic_error("Maximum lights exceeded");
+    }
+    self.lights_.push_back(light);
+    glUniform1i(program.uniform("lightCount"), index + 1);
+    glUniform3fv(
+        self.cache_[index].position, 1, glm::value_ptr(light.position_));
+    glUniform3fv(self.cache_[index].color, 1, glm::value_ptr(light.color_));
+}
+
+void LightManager::pop_back() {
+    auto& lights = instance().lights_;
+    lights.pop_back();
+    auto& program = Mesh::program();
+    program.use();
+    glUniform1i(program.uniform("lightCount"), lights.size());
+}
+
+void LightManager::update(unsigned index, const Light& light) {
+    auto& program = Mesh::program();
+    program.use();
+    auto& self = instance();
+    auto& current = self.lights_[index];
+    if (current.position_ != light.position_) {
+        current.position_ = light.position_;
+        glUniform3fv(
+            self.cache_[index].position, 1, glm::value_ptr(light.position_));
+    }
+    if (current.color_ != light.color_) {
+        current.color_ = light.color_;
+        glUniform3fv(self.cache_[index].color, 1, glm::value_ptr(light.color_));
+    }
 }
 
 }  // namespace neat
