@@ -101,7 +101,7 @@ void Image::load(const void* data, size_t size) noexcept {
 
         png_uint_32 i;
         for (i = 0; i < height_; i++) {
-            row_ptrs.data()[i] = data_ + i * row_size;
+            row_ptrs[i] = data_ + i * row_size;
         }
         png_read_image(pngPtr, row_ptrs.data());
     }

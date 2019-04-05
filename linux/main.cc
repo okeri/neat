@@ -11,6 +11,8 @@
 #include <stdexcept>
 #include <atomic>
 
+#include <chrono>
+
 #include <NoCopy.hh>
 #include <interface.hh>
 
@@ -235,8 +237,8 @@ class WaylandWindow : private NoCopy {
     }
 
     void draw() {
-        static uint64_t time = 0;
-        ::draw(time++);
+        ::draw(std::chrono::system_clock::now().time_since_epoch() /
+               std::chrono::milliseconds(1));
         wl_surface_frame(surface_);
         eglSwapBuffers(dpy_, egl_surface_);
     }
