@@ -13,22 +13,11 @@ class Object : private NoCopy {
     glm::mat4 mm_;
 
   public:
-    inline glm::mat4& modelMatrix() {
-        return mm_;
-    }
-
     Object(const Model& model, const glm::mat4& vp, const glm::mat4& view,
-        glm::mat4&& modelMatrix) noexcept :
-        model_(model),
-        vp_(vp),
-        view_(view),
-        mm_(modelMatrix) {
-    }
-
-    void render() {
-        model_.render(
-            vp_ * mm_, view_ * mm_, glm::transpose(glm::inverse(mm_)));
-    }
+        glm::mat4&& modelMatrix) noexcept;
+    void render();
+    void translate(const glm::vec3& t);
+    void rotate(float angle, const glm::vec3& r);
 };
 
 }  // namespace neat

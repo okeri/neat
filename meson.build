@@ -36,7 +36,8 @@ libneat = static_library('neat',
 			  'source/Model.cc',
 			  'source/Program.cc',
 			  'source/Text.cc',
-			  'source/Texture.cc'],
+			  'source/Texture.cc',
+			  'source/Object.cc'],
 			 include_directories: includes,
 			 dependencies: deps)
 
