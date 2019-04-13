@@ -35,6 +35,7 @@ class LightManager : NoCopy {
     static void push(const Light& light);
     static void pop_back();
     static void update(unsigned index, const Light& light);
+    static void clear();
 
   private:
     std::vector<Light> lights_;

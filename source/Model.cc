@@ -73,7 +73,7 @@ void main() {
             vec3 viewDir = normalize(-vertPos);
             vec3 reflectDir = reflect(-lightDir, norm);
             float specAngle = max(dot(reflectDir, viewDir), 0.0);
-            specular = specAngle * specAngle;;
+	    specular = specAngle * specAngle;
         }
         color += (material.diffuse  * lambertian +
            material.specular * specular) * lights[light].color;
@@ -393,7 +393,7 @@ class Model::Impl {
                             auto filename =
                                 source.readFilenameValue(header.len);
                             std::vector<uint8_t> buffer;
-                            Asset asset(parentPath.append(filename).string());
+                            Asset asset((parentPath / filename).string());
                             if (asset.read(buffer) != Asset::Error) {
                                 // TODO: texture cache
                                 material.texture = Texture(
@@ -632,6 +632,13 @@ void LightManager::pop_back() {
     auto& program = Mesh::program();
     program.use();
     glUniform1i(program.uniform("lightCount"), lights.size());
+}
+
+void LightManager::clear() {
+    instance().lights_.clear();
+    auto& program = Mesh::program();
+    program.use();
+    glUniform1i(program.uniform("lightCount"), 0);
 }
 
 void LightManager::update(unsigned index, const Light& light) {
