@@ -4,9 +4,10 @@ project('neat', ['cpp', 'c'],
 
 cc = meson.get_compiler('cpp')
 add_project_arguments(['-pedantic',
-		      '-Wextra',
-		      '-Wunreachable-code',
-		      '-DGLM_CONFIG_XYZW_ONLY'],
+		       '-Wall',
+		       '-Wextra',
+		       '-Wunreachable-code',
+		       '-DGLM_CONFIG_XYZW_ONLY'],
 		      language : 'cpp')
 
 includes = include_directories('include')
