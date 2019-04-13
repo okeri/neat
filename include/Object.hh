@@ -6,7 +6,7 @@
 
 namespace neat {
 
-class Object : private NoCopy {
+class Object {
     const Model& model_;
     const glm::mat4& vp_;
     const glm::mat4& view_;
@@ -14,9 +14,11 @@ class Object : private NoCopy {
 
   public:
     Object(const Model& model, const glm::mat4& vp, const glm::mat4& view,
-        glm::mat4&& modelMatrix) noexcept;
-    void render();
+        const glm::mat4& modelMatrix = glm::mat4(1.f)) noexcept;
+    void render() const;
     void translate(const glm::vec3& t);
+    void setPosition(const glm::mat4& p);
+    glm::mat4 position() const;
     void rotate(float angle, const glm::vec3& r);
 };
 
