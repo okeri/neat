@@ -72,11 +72,17 @@ void Image::load(const void* data, size_t size) noexcept {
     png_get_IHDR(
         pngPtr, infoPtr, &width_, &height_, &bit_depth, &fmt, NULL, NULL, NULL);
 
-    if (png_get_valid(pngPtr, infoPtr, PNG_INFO_tRNS))
+    if (png_get_valid(pngPtr, infoPtr, PNG_INFO_tRNS)) {
         png_set_tRNS_to_alpha(pngPtr);
+    }
 
-    if (fmt == PNG_COLOR_TYPE_GRAY && bit_depth < 8)
+    if (fmt == PNG_COLOR_TYPE_GRAY && bit_depth < 8) {
         png_set_expand_gray_1_2_4_to_8(pngPtr);
+    }
+
+    if (bit_depth == 16) {
+        png_set_scale_16(pngPtr);
+    }
 
     if (fmt == PNG_COLOR_TYPE_PALETTE) {
         png_set_palette_to_rgb(pngPtr);
