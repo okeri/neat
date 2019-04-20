@@ -244,15 +244,6 @@ class Material : private NoCopy {
         return faceCount_;
     }
 
-    void setUniforms(Program& program) const {
-        glUniform3fv(
-            program.uniform("material.diffuse"), 1, glm::value_ptr(diffuse));
-        glUniform3fv(
-            program.uniform("material.ambient"), 1, glm::value_ptr(ambient));
-        glUniform3fv(
-            program.uniform("material.specular"), 1, glm::value_ptr(specular));
-    }
-
     void set(const std::vector<Face>& faces) {
         ibo_.bind(Buffer::Target::ElementArray);
         faceCount_ = faces.size();
@@ -261,11 +252,17 @@ class Material : private NoCopy {
         ibo_.unbind(Buffer::Target::ElementArray);
     }
 
-    void bind() const {
+    void bind(Program& program) const {
         ibo_.bind(Buffer::Target::ElementArray);
         if (texture) {
             texture->bind();
         }
+        glUniform3fv(
+            program.uniform("material.diffuse"), 1, glm::value_ptr(diffuse));
+        glUniform3fv(
+            program.uniform("material.ambient"), 1, glm::value_ptr(ambient));
+        glUniform3fv(
+            program.uniform("material.specular"), 1, glm::value_ptr(specular));
     }
 
     void unbind() const {
@@ -350,8 +347,8 @@ class Mesh : private GLResource {
     void render() const {
         glBindVertexArray(id_);
         for (const auto& material : materials_) {
-            Binder matBinder(material);
-            material.setUniforms(*program_);
+            Binder matBinder(
+                material, std::reference_wrapper<Program>(*program_));
             glDrawElements(
                 GL_TRIANGLES, material.faceCount(), GL_UNSIGNED_SHORT, nullptr);
         }
@@ -499,10 +496,11 @@ class Model::Impl {
 
                 if (mesh.valid()) {
                     std::vector<Face> result;
+                    size_t face = 0;
                     for (size_t mat = 0; mat != materialFaces.size(); ++mat) {
                         result.reserve(materialFaces[mat].size() * 3);
-                        for (size_t face = 0; face != materialFaces[mat].size();
-                             ++face) {
+                        for (auto end = materialFaces[mat].size() + face;
+                             face < end; ++face) {
                             result.push_back(mesh.faces[face].x);
                             result.push_back(mesh.faces[face].y);
                             result.push_back(mesh.faces[face].z);

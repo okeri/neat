@@ -2,6 +2,8 @@
 
 #pragma once
 
+#include <utility>
+
 #include "NoCopy.hh"
 
 namespace neat {
@@ -14,7 +16,7 @@ class Binder : private NoCopy {
 
   public:
     explicit Binder(T& t, BindArgs... args) : t_(t) {
-        t_.bind(args...);
+        t_.bind(std::forward<BindArgs>(args)...);
     }
 
     ~Binder() {
