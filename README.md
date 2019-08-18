@@ -13,8 +13,6 @@ simple low-level graphic engine
   * Texture cache (allow GPU texture sharing between various library classes)
   * Fong lightning model?
   * Basic visual effects (e.g. water, fog, fire, explosion?)
-  * Extend text/layout support (all about UI, but i'll try to keep it simple)
-  * Provide some files for building 
   + Simple sample app (including Java support code for android) 
   + add iOS support
   
@@ -23,3 +21,4 @@ simple low-level graphic engine
   * Render text using fonts
   * Load and render 3ds models
   * Support png textures
+  * Provide some files for building 
