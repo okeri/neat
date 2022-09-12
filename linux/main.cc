@@ -14,18 +14,17 @@
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-#include <signal.h>
+#include <cstring>
+#include <stdexcept>
+#include <atomic>
+#include <chrono>
+#include <csignal>
+
 #include <linux/input.h>
 #include <EGL/egl.h>
 #include <wayland-client.h>
 #include <wayland-cursor.h>
 #include <wayland-egl.h>
-
-#include <cstring>
-#include <stdexcept>
-#include <atomic>
-
-#include <chrono>
 
 #include <NoCopy.hh>
 #include <interface.hh>
@@ -68,7 +67,7 @@ class WaylandWindow : private NoCopy {
         static const wl_pointer_listener pointer_listener = {
             [](void* data, wl_pointer* pointer, uint32_t serial, wl_surface*,
                 wl_fixed_t, wl_fixed_t) {
-                WaylandWindow* window = reinterpret_cast<WaylandWindow*>(data);
+                auto* window = reinterpret_cast<WaylandWindow*>(data);
                 wl_cursor_image* image = window->default_cursor_->images[0];
                 wl_buffer* buffer = wl_cursor_image_get_buffer(image);
                 wl_pointer_set_cursor(pointer, serial, window->cursor_surface_,
@@ -81,7 +80,7 @@ class WaylandWindow : private NoCopy {
             [](void*, wl_pointer*, uint32_t, wl_surface*) {},
             [](void* data, wl_pointer*, uint32_t, wl_fixed_t sx,
                 wl_fixed_t sy) {
-                WaylandWindow* window = reinterpret_cast<WaylandWindow*>(data);
+                auto* window = reinterpret_cast<WaylandWindow*>(data);
                 window->x_ = sx;
                 window->y_ = sy;
                 if (window->pressed_) {
@@ -93,7 +92,7 @@ class WaylandWindow : private NoCopy {
             },
             [](void* data, wl_pointer*, uint32_t serial, uint32_t,
                 uint32_t button, uint32_t state) {
-                WaylandWindow* window = reinterpret_cast<WaylandWindow*>(data);
+                auto* window = reinterpret_cast<WaylandWindow*>(data);
                 if (button == BTN_LEFT) {
                     window->pressed_ = state == WL_POINTER_BUTTON_STATE_PRESSED;
                     if (window->pressed_) {
@@ -108,11 +107,11 @@ class WaylandWindow : private NoCopy {
                 }
             },
             [](void*, struct wl_pointer*, uint32_t, uint32_t, wl_fixed_t) {},
-            nullptr, nullptr, nullptr, nullptr};
+            nullptr, nullptr, nullptr, nullptr, nullptr};
 
         static const wl_seat_listener seat_listener = {
             [](void* data, wl_seat* seat, unsigned caps) {
-                WaylandWindow* window = reinterpret_cast<WaylandWindow*>(data);
+                auto* window = reinterpret_cast<WaylandWindow*>(data);
                 if ((caps & WL_SEAT_CAPABILITY_POINTER) && !window->pointer_) {
                     window->pointer_ = wl_seat_get_pointer(seat);
                     wl_pointer_add_listener(
@@ -120,7 +119,7 @@ class WaylandWindow : private NoCopy {
                 } else if (!(caps & WL_SEAT_CAPABILITY_POINTER) &&
                            window->pointer_) {
                     wl_pointer_destroy(window->pointer_);
-                    window->pointer_ = NULL;
+                    window->pointer_ = nullptr;
                 }
             },
             nullptr};
@@ -133,7 +132,7 @@ class WaylandWindow : private NoCopy {
         static const wl_registry_listener registry_listener = {
             [](void* data, wl_registry* registry, uint32_t id,
                 const char* interface, uint32_t) {
-                WaylandWindow* window = reinterpret_cast<WaylandWindow*>(data);
+                auto* window = reinterpret_cast<WaylandWindow*>(data);
                 if (strcmp(interface, wl_compositor_interface.name) == 0) {
                     window->compositor_ =
                         reinterpret_cast<wl_compositor*>(wl_registry_bind(
@@ -150,9 +149,10 @@ class WaylandWindow : private NoCopy {
                         wl_registry_bind(registry, id, &wl_seat_interface, 1));
                     wl_seat_add_listener(window->seat_, &seat_listener, window);
                 } else if (strcmp(interface, wl_shm_interface.name) == 0) {
-                    wl_shm* shm = reinterpret_cast<wl_shm*>(
+                    auto* shm = reinterpret_cast<wl_shm*>(
                         wl_registry_bind(registry, id, &wl_shm_interface, 1));
-                    window->cursor_theme_ = wl_cursor_theme_load(NULL, 32, shm);
+                    window->cursor_theme_ =
+                        wl_cursor_theme_load(nullptr, 32, shm);
                     window->default_cursor_ = wl_cursor_theme_get_cursor(
                         window->cursor_theme_, "left_ptr");
                 }
@@ -161,17 +161,17 @@ class WaylandWindow : private NoCopy {
 
         static const xdg_surface_listener xdg_surface_listener = {
             [](void* data, xdg_surface* surface, uint32_t serial) {
-                WaylandWindow* window = reinterpret_cast<WaylandWindow*>(data);
+                auto* window = reinterpret_cast<WaylandWindow*>(data);
                 xdg_surface_ack_configure(surface, serial);
                 window->configured_ = true;
             }};
 
         static const xdg_toplevel_listener xdg_toplevel_listener = {
             [](void*, xdg_toplevel*, int32_t, int32_t, struct wl_array*) {},
-            [](void*, xdg_toplevel*) {}};
+            [](void*, xdg_toplevel*) {}, nullptr, nullptr};
 
         queryData(&settings_);
-        display_ = wl_display_connect(NULL);
+        display_ = wl_display_connect(nullptr);
         if (display_ == nullptr) {
             throw std::runtime_error("Can't connect to display");
         }
@@ -194,7 +194,7 @@ class WaylandWindow : private NoCopy {
             EGL_NONE};
 
         dpy_ = eglGetDisplay(reinterpret_cast<EGLNativeDisplayType>(display_));
-        eglInitialize(dpy_, NULL, NULL);
+        eglInitialize(dpy_, nullptr, nullptr);
         eglBindAPI(EGL_OPENGL_ES_API);
 
         EGLint n;
@@ -277,13 +277,11 @@ class WaylandWindow : private NoCopy {
 
 WaylandWindow wnd;
 
-void sigHandler(int) {
+void sigHandler([[maybe_unused]] int sig) {
     wnd.stop();
 }
 
-int main(int, char**) {
-    signal(SIGTERM, sigHandler);
+int main([[maybe_unused]] int argc, [[maybe_unused]] char** argv) {
     signal(SIGINT, sigHandler);
-    signal(SIGKILL, sigHandler);
     return wnd.loop();
 }
