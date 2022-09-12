@@ -1,11 +1,9 @@
 project('neat', ['cpp', 'c'],
     license: 'GPL3',
-    default_options: ['buildtype=debug', 'cpp_std=c++17'])
+    default_options: ['buildtype=debug', 'cpp_std=c++20', 'warning_level=3'])
 
 cc = meson.get_compiler('cpp')
-add_project_arguments(['-pedantic',
-		       '-Wall',
-		       '-Wextra',
+add_project_arguments(['-Wpedantic',
 		       '-Wunreachable-code',
 		       '-DGLM_CONFIG_XYZW_ONLY'],
 		      language : 'cpp')
