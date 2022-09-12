@@ -17,18 +17,18 @@
 #pragma once
 
 #include <map>
+#include <functional>
 
 namespace neat {
 
-template <typename Event, typename State>
+template <typename Event, typename State, State Error>
 class StateMachine {
   public:
     using Transitions = std::map<std::pair<State, Event>, State>;
-
     /** To simplify this interface we set 'Error State',
      in case transition is not possible 'emit' returns error state */
-    StateMachine(Transitions* table, State initial, State error) :
-        transitionTable_(table), currentState_(initial), error_(error) {
+    StateMachine(Transitions* table, State initial) :
+        transitionTable_(table), currentState_(initial) {
     }
 
     State emit(Event event) {
@@ -38,7 +38,7 @@ class StateMachine {
             currentState_ = newState->second;
             return currentState_;
         }
-        return error_;
+        return Error;
     }
 
     State state() const {
@@ -48,7 +48,6 @@ class StateMachine {
   private:
     Transitions* transitionTable_;
     State currentState_;
-    State error_;
 };
 
 }  // namespace neat
