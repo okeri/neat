@@ -1,10 +1,10 @@
 // Copyright 2018 Keri Oleg
 
+#include <optional>
+
 #include <GLES3/gl3.h>
 #include <ft2build.h>
 #include FT_FREETYPE_H
-//#include FT_LCD_FILTER_H
-#include <optional>
 
 #include <Buffer.hh>
 #include <Texture.hh>
@@ -109,6 +109,15 @@ class Font::Impl {
         }
     }
 
+    Impl(Impl&& rhs) noexcept :
+        width_(rhs.width_),
+        height_(rhs.height_),
+        atlas_(std::move(rhs.atlas_)),
+        valid_(rhs.valid_) {
+        std::copy(rhs.chars_, rhs.chars_ + charCount, chars_);
+        rhs.valid_ = false;
+    }
+
     std::vector<glm::vec4> calculate(
         std::string_view text, const glm::vec2& coords) const {
         std::vector<glm::vec4> result(6 * text.length());
@@ -139,17 +148,21 @@ class Font::Impl {
         return result;
     }
 
-    float centerX(std::string_view str) const {
-        float w = 0;
+    float width(std::string_view str) const {
+        float result = 0;
         for (auto c : str) {
             auto i = c - charStart;
-            w += chars_[i].advanceX + chars_[i].left + chars_[i].width;
+            result += chars_[i].advanceX + chars_[i].left + chars_[i].width;
         }
-        return w / -4;
+        return result;
     }
 
     float height() const {
         return height_ * scale_;
+    }
+
+    float centerX(std::string_view str) const {
+        return width(str) / -4;
     }
 
     bool valid() const {
@@ -165,13 +178,10 @@ class Font::Impl {
     void unbind() const {
         atlas_->unbind();
     }
-
-    ~Impl() {
-    }
 };
 
 Font::Font(const void* data, std::size_t size, int height) noexcept :
-    pImpl_(std::make_unique<Impl>(data, size, height)) {
+    pImpl_(data, size, height) {
 }
 
 Font::Font(Font&& rhs) noexcept : pImpl_(std::move(rhs.pImpl_)) {
@@ -196,6 +206,10 @@ float Font::centerX(std::string_view str) const {
 
 float Font::height() const {
     return pImpl_->height();
+}
+
+float Font::width(std::string_view str) const {
+    return pImpl_->width(str);
 }
 
 bool Font::valid() const {

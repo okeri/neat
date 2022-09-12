@@ -2,13 +2,13 @@
 
 #pragma once
 
-#include <memory>
 #include <array>
 #include <vector>
 #include <string_view>
 #include <glm/mat4x4.hpp>
 
 #include "NoCopy.hh"
+#include "PImpl.hh"
 
 namespace neat {
 
@@ -44,7 +44,7 @@ class LightManager : NoCopy {
 
 class Model : private NoCopy {
     class Impl;
-    std::unique_ptr<Impl> pImpl_;
+    PImpl<Impl, 48, 8> pImpl_;
 
   public:
     Model(std::string_view filename, float scale) noexcept;

@@ -295,8 +295,7 @@ class Mesh : private GLResource {
 
   public:
     Mesh(Mesh&& rhs) noexcept :
-        buffers_(std::move(rhs.buffers_)),
-        materials_(rhs.materials_) {
+        buffers_(std::move(rhs.buffers_)), materials_(rhs.materials_) {
         swap(std::move(rhs));
     }
 
@@ -551,6 +550,10 @@ class Model::Impl {
         }
     }
 
+    Impl(Impl&& rhs) noexcept :
+        meshes_(std::move(rhs.meshes_)), materials_(std::move(rhs.materials_)) {
+    }
+
     void render() const {
         for (const auto& mesh : meshes_) {
             mesh.render();
@@ -560,13 +563,10 @@ class Model::Impl {
     bool valid() const {
         return !meshes_.empty();
     }
-
-    ~Impl() {
-    }
 };
 
 Model::Model(std::string_view filename, float scale) noexcept :
-    pImpl_(std::make_unique<Impl>(filename, scale)) {
+    pImpl_(filename, scale) {
 }
 
 Model::Model(Model&& rhs) noexcept : pImpl_(std::move(rhs.pImpl_)) {
@@ -592,8 +592,7 @@ bool Model::valid() const {
 }
 
 LightManager::Light::Light(const glm::vec3& pos, const glm::vec3& col) :
-    position_(pos),
-    color_(col) {
+    position_(pos), color_(col) {
 }
 
 LightManager& LightManager::instance() {
