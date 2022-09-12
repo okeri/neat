@@ -1,4 +1,18 @@
-// Copyright 2018 Keri Oleg
+/*
+    neat - simple graphics engine
+    This library is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This library is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program.  If not, see <https://www.gnu.org/licenses/>.
+*/
 
 #include <GLES3/gl3.h>
 
@@ -37,8 +51,7 @@ void main() {
 namespace neat {
 
 Billboard::Billboard(Billboard&& rhs) noexcept :
-    vertices_(std::move(rhs.vertices_)),
-    buffer_(std::move(rhs.buffer_)) {
+    vertices_(std::move(rhs.vertices_)), buffer_(std::move(rhs.buffer_)) {
 }
 
 Billboard::Billboard(glm::vec4* vertices) noexcept : vertices_(vertices) {
