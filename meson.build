@@ -1,6 +1,9 @@
-project('neat', ['cpp', 'c'],
-    license: 'GPL3',
-    default_options: ['buildtype=debug', 'cpp_std=c++20', 'warning_level=3'])
+project('neat',
+        ['cpp', 'c'],
+        license: 'GPL3',
+        default_options: ['buildtype=debug',
+                          'cpp_std=c++20',
+                          'warning_level=3'])
 
 cc = meson.get_compiler('cpp')
 add_project_arguments(['-Wpedantic',
@@ -22,7 +25,12 @@ deps = [freetype2,
 	libpng,
 	stdfs]
 
-subdir('linux')
+if get_option('platform') == 'linux'
+  add_project_arguments('-DLINUX', language : 'cpp')
+  subdir('linux')
+elif get_option('platform') == 'android'
+    add_project_arguments('-DANDROID', language : 'cpp')
+endif
 
 libneat = static_library('neat',
 			 ['source/Asset.cc',

@@ -1,4 +1,3 @@
-add_project_arguments('-DLINUX', language : 'cpp')
 linux_sources = ['main.cc']
 
 egl = dependency('egl')
