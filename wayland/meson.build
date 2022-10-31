@@ -1,4 +1,4 @@
-linux_sources = ['main.cc']
+wayland_sources = ['main.cc']
 
 egl = dependency('egl')
 wayland_egl = dependency('wayland-egl')
@@ -19,14 +19,14 @@ wayland_scanner_client = generator(
     arguments: ['client-header', '@INPUT@', '@OUTPUT@'])
 
 proto = join_paths(wayland_protocol_path, 'stable/xdg-shell/xdg-shell.xml')
-linux_sources += wayland_scanner_client.process(proto)
-linux_sources += wayland_scanner_code.process(proto)
+wayland_sources += wayland_scanner_client.process(proto)
+wayland_sources += wayland_scanner_code.process(proto)
 
-libneatlinux = static_library('neatlinux', linux_sources,
+libneatwayland = static_library('neatwayland', wayland_sources,
 			      include_directories: includes,
 			      dependencies: [wayland_cursor,
 					     wayland_egl,
 					     egl])
 
-neat_linux = declare_dependency(link_with: libneatlinux)
-deps += neat_linux
+neat_wayland = declare_dependency(link_with: libneatwayland)
+deps += neat_wayland

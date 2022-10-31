@@ -25,9 +25,12 @@ deps = [freetype2,
 	libpng,
 	stdfs]
 
-if get_option('platform') == 'linux'
-  add_project_arguments('-DLINUX', language : 'cpp')
-  subdir('linux')
+if get_option('platform') == 'wayland'
+  add_project_arguments(['-DLINUX','-DWAYLAND'], language : 'cpp')
+  subdir('wayland')
+elif get_option('platform') == 'x11'
+  add_project_arguments(['-DLINUX', '-DX11'], language : 'cpp')
+  subdir('x11')
 elif get_option('platform') == 'android'
   add_project_arguments('-DANDROID', language : 'cpp')
 endif
