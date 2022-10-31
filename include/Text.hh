@@ -47,8 +47,8 @@ class Text : private NoCopy {
   public:
     Text(std::vector<Entry>&&, const Font& font);
     void render();
-    const glm::vec2& operator[](unsigned);
-    size_t count() const;
+    const glm::vec2& operator[](unsigned) const;
+    [[nodiscard]] size_t count() const;
 
     static void setColor(unsigned int color);
     static void draw(std::string_view text, const Font& font, float x, float y);

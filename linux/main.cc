@@ -90,19 +90,16 @@ class WaylandWindow : private NoCopy {
                     }
                 }
             },
-            [](void* data, wl_pointer*, uint32_t serial, uint32_t,
-                uint32_t button, uint32_t state) {
+            [](void* data, wl_pointer*, [[maybe_unused]] uint32_t serial,
+                uint32_t, uint32_t button, uint32_t state) {
                 auto* window = reinterpret_cast<WaylandWindow*>(data);
                 if (button == BTN_LEFT) {
                     window->pressed_ = state == WL_POINTER_BUTTON_STATE_PRESSED;
-                    if (window->pressed_) {
-                        xdg_toplevel_move(
-                            window->toplevel_, window->seat_, serial);
-                        if (action(Actions::Click,
-                                window->x_ / window->settings_.dpi,
-                                window->y_ / window->settings_.dpi) == 1) {
-                            window->stop();
-                        }
+                    if (action(window->pressed_ ? Actions::TouchDown
+                                                : Actions::TouchUp,
+                            window->x_ / window->settings_.dpi,
+                            window->y_ / window->settings_.dpi) == 1) {
+                        window->stop();
                     }
                 }
             },

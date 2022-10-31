@@ -231,7 +231,7 @@ class Material : private NoCopy {
     glm::vec3 specular;
     std::optional<Texture> texture;
 
-    Material() : faceCount_(0) {
+    Material() : ibo_(Buffer::Target::ElementArray), faceCount_(0) {
     }
 
     Material(Material&& rhs) {
@@ -259,15 +259,14 @@ class Material : private NoCopy {
     }
 
     void set(const std::vector<Face>& faces) {
-        ibo_.bind(Buffer::Target::ElementArray);
+        Binder ibind(ibo_);
         faceCount_ = faces.size();
         glBufferData(GL_ELEMENT_ARRAY_BUFFER, faces.size() * sizeof(Face),
             faces.data(), GL_STATIC_DRAW);
-        ibo_.unbind(Buffer::Target::ElementArray);
     }
 
     void bind(Program& program) const {
-        ibo_.bind(Buffer::Target::ElementArray);
+        ibo_.bind();
         if (texture) {
             texture->bind();
         }
@@ -280,7 +279,7 @@ class Material : private NoCopy {
     }
 
     void unbind() const {
-        ibo_.unbind(Buffer::Target::ElementArray);
+        ibo_.unbind();
         if (texture) {
             texture->unbind();
         }

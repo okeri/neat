@@ -18,6 +18,6 @@
 
 namespace neat {
 
-enum class Actions : int { Click, Move, Back, Pause, Resume };
+enum class Actions { TouchUp, TouchDown, Move, Back, Pause, Resume };
 
 }  // namespace neat

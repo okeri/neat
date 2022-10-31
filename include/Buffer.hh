@@ -24,19 +24,22 @@ namespace neat {
 
 class Buffer : private GLResource {
   public:
-    enum class Target { Array = 0x8892, ElementArray = 0x8893 };
-    Buffer() noexcept;
+    enum class Target : unsigned { Array = 0x8892, ElementArray = 0x8893 };
+    explicit Buffer(Target target = Target::Array) noexcept;
     Buffer(Buffer&& rhs) noexcept;
     ~Buffer();
     Buffer& operator=(Buffer&& rhs) noexcept;
-    void bind(Target target = Target::Array) const;
-    void unbind(Target target = Target::Array) const;
-    void set(const void* data, unsigned size);
+    void bind() const noexcept;
+    void unbind() const noexcept;
+    void set(const void* data, unsigned size) noexcept;
 
     template <typename _Tp>
-    void set(const std::vector<_Tp>& data) {
+    void set(const std::vector<_Tp>& data) noexcept {
         set(data.data(), data.size() * sizeof(_Tp));
     }
+
+  private:
+    Target target_;
 };
 
 }  // namespace neat

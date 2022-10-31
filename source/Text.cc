@@ -94,7 +94,7 @@ size_t Text::count() const {
     return values_.size();
 }
 
-const glm::vec2& Text::operator[](unsigned index) {
+const glm::vec2& Text::operator[](unsigned index) const {
     return values_[index].start;
 }
 

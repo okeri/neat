@@ -29,7 +29,7 @@ if get_option('platform') == 'linux'
   add_project_arguments('-DLINUX', language : 'cpp')
   subdir('linux')
 elif get_option('platform') == 'android'
-    add_project_arguments('-DANDROID', language : 'cpp')
+  add_project_arguments('-DANDROID', language : 'cpp')
 endif
 
 libneat = static_library('neat',

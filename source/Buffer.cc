@@ -26,7 +26,7 @@ Buffer::Buffer(Buffer&& rhs) noexcept {
     swap(std::move(rhs));
 }
 
-Buffer::Buffer() noexcept {
+Buffer::Buffer(Target target) noexcept : target_(target) {
     glGenBuffers(1, &id_);
 }
 
@@ -41,15 +41,15 @@ Buffer::~Buffer() {
     }
 }
 
-void Buffer::bind(Target target) const {
-    glBindBuffer(static_cast<GLenum>(target), id_);
+void Buffer::bind() const noexcept {
+    glBindBuffer(static_cast<GLenum>(target_), id_);
 }
 
-void Buffer::unbind(Target target) const {
-    glBindBuffer(static_cast<GLenum>(target), 0);
+void Buffer::unbind() const noexcept {
+    glBindBuffer(static_cast<GLenum>(target_), 0);
 }
 
-void Buffer::set(const void* data, unsigned size) {
+void Buffer::set(const void* data, unsigned size) noexcept {
     glBufferData(GL_ARRAY_BUFFER, size, data, GL_STATIC_DRAW);
 }
 
