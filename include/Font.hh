@@ -19,7 +19,6 @@
 #include <string_view>
 #include <vector>
 
-#include <glm/vec2.hpp>
 #include <glm/vec4.hpp>
 
 #include "NoCopy.hh"
@@ -41,7 +40,7 @@ class Font : private NoCopy {
     void bind() const noexcept;
     void unbind() const noexcept;
     [[nodiscard]] std::vector<glm::vec4> calculate(
-        std::string_view, const glm::vec2& coords) const noexcept;
+        std::string_view, float x, float y) const noexcept;
     ~Font();
 };
 

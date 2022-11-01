@@ -15,7 +15,6 @@
 */
 
 #include <GLES3/gl3.h>
-#include <glm/gtc/type_ptr.hpp>
 
 #include <Binder.hh>
 #include <Text.hh>
@@ -31,8 +30,10 @@ const char* textV = GLSL(
 in vec4 pos_uv;
 out vec2 uv;
 
+uniform vec2 shift;
+
 void main() {
-    gl_Position = vec4(pos_uv.xy, 0, 1);
+    gl_Position = vec4(pos_uv.xy + shift, 0, 1);
     uv = pos_uv.zw;
 }
 );
@@ -52,49 +53,47 @@ void main() {
 
 }  // namespace
 
-Text::Entry::Entry(std::string_view t, float x, float y) :
-    start(x, y), text(t) {
-}
-
-Text::Text(std::vector<Entry>&& e, const Font& font) : font_(font), values_(e) {
-    std::vector<glm::vec4> data;
-    for (const auto& entry : values_) {
-        auto vertexes = font_.calculate(entry.text, entry.start);
-        data.insert(data.end(), vertexes.begin(), vertexes.end());
-    }
-
-    Binder fontBinder(font_);
-
+Text::Text(const Font& font) noexcept : font_(font) {
+    glEnableVertexAttribArray(0);
     if (!program_) {
         program_ =
             Program({{GL_FRAGMENT_SHADER, textF}, {GL_VERTEX_SHADER, textV}});
     }
 
     program_->use();
-    count_ = data.size();
+    buffer_.bind();
+}
 
-    Binder bufferBinder(buffer_);
-    buffer_.set(data.data(), sizeof(glm::vec4) * count_);
-    glEnableVertexAttribArray(0);
+Text::Text(std::string_view text, float x, float y, const Font& font) noexcept :
+    Text(font) {
+    auto vertexes = font_.calculate(text, x, y);
+    buffer_.set(vertexes.data(), sizeof(glm::vec4) * vertexes.size());
+}
+
+Text::Text(const std::vector<Entry>& values, const Font& font) noexcept :
+    Text(font) {
+    std::vector<glm::vec4> data;
+    for (const auto& entry : values) {
+        auto vertexes = font_.calculate(entry.text, entry.x, entry.y);
+        data.insert(data.end(), vertexes.begin(), vertexes.end());
+    }
+    buffer_.set(data.data(), sizeof(glm::vec4) * data.size());
 }
 
 void Text::render() noexcept {
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    Binder fontBinder(font_);
-    Binder bufferBinder(buffer_);
+    font_.bind();
+    buffer_.bind();
     program_->use();
     glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 0, nullptr);
-    glDrawArrays(GL_TRIANGLES, 0, count_);
+    glDrawArrays(GL_TRIANGLES, 0, buffer_.size() / sizeof(glm::vec4));
     glDisable(GL_BLEND);
 }
 
-size_t Text::count() const {
-    return values_.size();
-}
-
-const glm::vec2& Text::operator[](unsigned index) const {
-    return values_[index].start;
+void Text::move(float x, float y) noexcept {
+    program_->use();
+    glUniform2f(program_->uniform("shift"), x, y);
 }
 
 void Text::setColor(unsigned int color) {
@@ -104,12 +103,9 @@ void Text::setColor(unsigned int color) {
 }
 
 void Text::draw(std::string_view text, const Font& font, float x, float y) {
-    auto data = font.calculate(text, glm::vec2(x, y));
+    auto data = font.calculate(text, x, y);
 
-    Binder fontBinder(font);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-
+    font.bind();
     if (!program_) {
         program_ =
             Program({{GL_FRAGMENT_SHADER, textF}, {GL_VERTEX_SHADER, textV}});
@@ -121,6 +117,10 @@ void Text::draw(std::string_view text, const Font& font, float x, float y) {
     glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 0, data.data());
     glDrawArrays(GL_TRIANGLES, 0, data.size());
     glDisable(GL_BLEND);
+}
+
+Text::Entry::Entry(std::string_view t, float startx, float starty) noexcept :
+    x(startx), y(starty), text(t) {
 }
 
 }  // namespace neat

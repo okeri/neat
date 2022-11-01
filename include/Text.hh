@@ -18,7 +18,6 @@
 
 #include <vector>
 #include <optional>
-#include <glm/vec2.hpp>
 
 #include "Font.hh"
 #include "Buffer.hh"
@@ -29,26 +28,21 @@ namespace neat {
 class Text : private NoCopy {
     Buffer buffer_;
     const Font& font_;
-    unsigned count_;
     inline static std::optional<Program> program_;
+    explicit Text(const Font& font) noexcept;
 
   public:
     struct Entry {
-        glm::vec2 start;
+        float x;
+        float y;
         std::string_view text;
-        // TODO: bool visible;
-      public:
-        Entry(std::string_view text, float x, float y);
+        Entry(std::string_view t, float starx, float starty) noexcept;
     };
 
-  private:
-    std::vector<Entry> values_;
-
-  public:
-    Text(std::vector<Entry>&&, const Font& font);
+    Text(std::string_view text, float x, float y, const Font& font) noexcept;
+    Text(const std::vector<Entry>&, const Font& font) noexcept;
     void render() noexcept;
-    const glm::vec2& operator[](unsigned) const;
-    [[nodiscard]] size_t count() const;
+    static void move(float x, float y) noexcept;
     static void setColor(unsigned int color);
     static void draw(std::string_view text, const Font& font, float x, float y);
 };

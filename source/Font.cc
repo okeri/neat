@@ -141,11 +141,9 @@ class Font::Impl {
     }
 
     [[nodiscard]] std::vector<glm::vec4> calculate(
-        std::string_view text, const glm::vec2& coords) const noexcept {
+        std::string_view text, float x, float y) const noexcept {
         std::vector<glm::vec4> result(6 * text.length());
         int n = 0;
-        float x = coords.x;
-        float y = coords.y;
 
         for (const auto& p : text) {
             const auto& sym = chars_[p - charStart];
@@ -208,8 +206,8 @@ Font::Font(Font&& rhs) noexcept : pImpl_(std::move(rhs.pImpl_)) {
 }
 
 std::vector<glm::vec4> Font::calculate(
-    std::string_view text, const glm::vec2& coords) const noexcept {
-    return pImpl_->calculate(text, coords);
+    std::string_view text, float x, float y) const noexcept {
+    return pImpl_->calculate(text, x, y);
 }
 
 void Font::bind() const noexcept {
