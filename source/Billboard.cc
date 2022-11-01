@@ -50,10 +50,6 @@ void main() {
 
 namespace neat {
 
-Billboard::Billboard(Billboard&& rhs) noexcept :
-    vertices_(std::move(rhs.vertices_)), buffer_(std::move(rhs.buffer_)) {
-}
-
 Billboard::Billboard(glm::vec4* vertices) noexcept : vertices_(vertices) {
     if (!program_) {
         program_ = Program(
@@ -65,7 +61,11 @@ Billboard::Billboard(glm::vec4* vertices) noexcept : vertices_(vertices) {
     glEnableVertexAttribArray(0);
 }
 
-void Billboard::render(const Texture& texture) {
+Billboard::Billboard(Billboard&& rhs) noexcept :
+    vertices_(rhs.vertices_), buffer_(std::move(rhs.buffer_)) {
+}
+
+void Billboard::render(const Texture& texture) const noexcept {
     Binder textureBinder(texture);
     Binder bufferBinder(buffer_);
     program_->use();

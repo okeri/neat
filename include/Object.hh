@@ -32,7 +32,7 @@ class Object {
     void render() const;
     void translate(const glm::vec3& t);
     void setPosition(const glm::mat4& p);
-    glm::mat4 position() const;
+    [[nodiscard]] glm::mat4 position() const;
     void rotate(float angle, const glm::vec3& r);
 };
 

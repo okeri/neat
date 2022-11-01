@@ -32,9 +32,9 @@ class Billboard : private NoCopy {
     inline static std::optional<Program> program_;
 
   public:
+    explicit Billboard(glm::vec4* vertices) noexcept;
     Billboard(Billboard&& rhs) noexcept;
-    Billboard(glm::vec4* vertices) noexcept;
-    void render(const Texture& texture);
+    void render(const Texture& texture) const noexcept;
 };
 
 #define defineStdRect(l, t, r, b)                                       \

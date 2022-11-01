@@ -37,7 +37,7 @@ class Asset {
   public:
     enum { Error = 0xffffffffffffffff };
 
-    Asset(std::string_view filename) noexcept;
+    explicit Asset(std::string_view filename) noexcept;
     ~Asset();
     bool valid();
     bool open(std::string_view filename);

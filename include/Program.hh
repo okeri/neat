@@ -38,9 +38,9 @@ class Program : private GLResource {
     explicit Program(const std::vector<ShaderInfo>& shaders) noexcept;
     Program(Program&& rhs) noexcept;
     Program& operator=(Program&& rhs) noexcept;
-    unsigned int uniform(const char* name);
-    void use();
-    unsigned int getRawId() const;
+    [[nodiscard]] unsigned int uniform(const char* name) noexcept;
+    void use() const noexcept;
+    unsigned int getRawId() const noexcept;
 };
 
 }  // namespace neat

@@ -76,15 +76,14 @@ uint64_t Asset::read(void* data, uint64_t size) {
 }
 
 uint64_t Asset::read(std::vector<uint8_t>& data) {
-    uint64_t size;
     if (!valid()) {
         return Error;
     }
 #ifdef ANDROID
-    size = AAsset_getLength64(file_);
+    auto size = AAsset_getLength64(file_);
 #else
     file_.seekg(0, std::ios_base::end);
-    size = file_.tellg();
+    auto size = file_.tellg();
     file_.seekg(0, std::ios_base::beg);
 #endif
     data.resize(size);

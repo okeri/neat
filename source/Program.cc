@@ -32,7 +32,7 @@ using AttachWraper = std::function<void(AttachFunc, GLuint)>;
 GLuint compile(GLenum shaderType, const char* src) {
     GLuint shader = glCreateShader(shaderType);
     if (shader) {
-        glShaderSource(shader, 1, &src, NULL);
+        glShaderSource(shader, 1, &src, nullptr);
         glCompileShader(shader);
         GLint compiled = GL_FALSE;
         glGetShaderiv(shader, GL_COMPILE_STATUS, &compiled);
@@ -41,7 +41,7 @@ GLuint compile(GLenum shaderType, const char* src) {
         glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &size);
         if (size) {
             std::unique_ptr<char[]> buffer = std::make_unique<char[]>(size);
-            glGetShaderInfoLog(shader, size, NULL, buffer.get());
+            glGetShaderInfoLog(shader, size, nullptr, buffer.get());
             Log() << "Error: " << buffer.get();
         }
 
@@ -66,7 +66,7 @@ GLuint program(AttachWraper wrapper) {
             glGetProgramiv(program, GL_INFO_LOG_LENGTH, &size);
             if (size) {
                 std::unique_ptr<char[]> buffer = std::make_unique<char[]>(size);
-                glGetProgramInfoLog(program, size, NULL, buffer.get());
+                glGetProgramInfoLog(program, size, nullptr, buffer.get());
                 Log() << "Error: " << buffer.get();
             }
             wrapper(glDetachShader, program);
@@ -100,25 +100,24 @@ Program& Program::operator=(Program&& rhs) noexcept {
     return *this;
 }
 
-void Program::use() {
+void Program::use() const noexcept {
     glUseProgram(id_);
 }
 
-unsigned int Program::uniform(const char* name) {
+unsigned int Program::uniform(const char* name) noexcept {
     auto found = uniforms_.find(name);
     if (found != uniforms_.end()) {
         return found->second;
-    } else {
-        auto result = glGetUniformLocation(id_, name);
-        uniforms_[name] = result;
-        if (result == GL_INVALID_VALUE) {
-            Log() << "cant get uniform " << name;
-        }
-        return result;
     }
+    auto result = glGetUniformLocation(id_, name);
+    uniforms_[name] = result;
+    if (result == GL_INVALID_VALUE) {
+        Log() << "cant get uniform " << name;
+    }
+    return result;
 }
 
-unsigned int Program::getRawId() const {
+unsigned int Program::getRawId() const noexcept {
     return id_;
 }
 

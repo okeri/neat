@@ -34,14 +34,14 @@ class Font : private NoCopy {
   public:
     Font(const void* data, std::size_t size, int height) noexcept;
     Font(Font&& rhs) noexcept;
-    float width(std::string_view) const;
-    float height() const;
-    float centerX(std::string_view) const;
-    bool valid() const;
-    void bind() const;
-    void unbind() const;
-    std::vector<glm::vec4> calculate(
-        std::string_view, const glm::vec2& coords) const;
+    [[nodiscard]] float width(std::string_view) const noexcept;
+    [[nodiscard]] float height() const noexcept;
+    [[nodiscard]] float centerX(std::string_view) const noexcept;
+    [[nodiscard]] bool valid() const noexcept;
+    void bind() const noexcept;
+    void unbind() const noexcept;
+    [[nodiscard]] std::vector<glm::vec4> calculate(
+        std::string_view, const glm::vec2& coords) const noexcept;
     ~Font();
 };
 

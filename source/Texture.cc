@@ -23,22 +23,20 @@
 namespace neat {
 
 Texture::Texture(unsigned bpp, unsigned width, unsigned height) noexcept {
-    auto getFormat = [bpp]() {
-        switch (bpp) {
-            case 1:
-                return GL_RED;
-
-            default:
-                return GL_RGB8;
-        }
-    };
-
     glGenTextures(1, &id_);
     bind();
-    auto format = getFormat();
+    auto format = bpp == 1 ? GL_RED : GL_RGB8;
     glTexImage2D(GL_TEXTURE_2D, 0, format, width, height, 0, format,
-        GL_UNSIGNED_BYTE, 0);
+        GL_UNSIGNED_BYTE, nullptr);
     glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+}
+
+Texture::Texture(const Image& image) noexcept {
+    glGenTextures(1, &id_);
+    bind();
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB8, image.width(), image.height(), 0,
+        GL_RGB, GL_UNSIGNED_BYTE, image.data());
+    glGenerateMipmap(GL_TEXTURE_2D);
 }
 
 Texture::Texture(Texture&& rhs) noexcept {
@@ -50,26 +48,18 @@ Texture& Texture::operator=(Texture&& rhs) noexcept {
     return *this;
 }
 
-Texture::Texture(const Image& image) noexcept {
-    glGenTextures(1, &id_);
-    bind();
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB8, image.width(), image.height(), 0,
-        GL_RGB, GL_UNSIGNED_BYTE, image.data());
-    glGenerateMipmap(GL_TEXTURE_2D);
-}
-
 Texture::~Texture() {
     if (id_ != 0) {
         glDeleteTextures(1, &id_);
     }
 }
 
-void Texture::bind() const {
+void Texture::bind() const noexcept {
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, id_);
 }
 
-void Texture::unbind() const {
+void Texture::unbind() {
     glBindTexture(GL_TEXTURE_2D, 0);
 }
 

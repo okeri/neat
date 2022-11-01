@@ -15,6 +15,7 @@
 */
 
 #include <GLES3/gl3.h>
+#include <glm/gtc/type_ptr.hpp>
 
 #include <Binder.hh>
 #include <Text.hh>
@@ -63,8 +64,6 @@ Text::Text(std::vector<Entry>&& e, const Font& font) : font_(font), values_(e) {
     }
 
     Binder fontBinder(font_);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 
     if (!program_) {
         program_ =
@@ -79,13 +78,13 @@ Text::Text(std::vector<Entry>&& e, const Font& font) : font_(font), values_(e) {
     glEnableVertexAttribArray(0);
 }
 
-void Text::render() {
+void Text::render() noexcept {
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     Binder fontBinder(font_);
     Binder bufferBinder(buffer_);
     program_->use();
-    glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 0, 0);
+    glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 0, nullptr);
     glDrawArrays(GL_TRIANGLES, 0, count_);
     glDisable(GL_BLEND);
 }
@@ -100,8 +99,8 @@ const glm::vec2& Text::operator[](unsigned index) const {
 
 void Text::setColor(unsigned int color) {
     program_->use();
-    glUniform4f(program_->uniform("inputColor"), color >> 16,
-        (color >> 8) & 0xff, color & 0xff, 1);
+    glUniform4f(program_->uniform("inputColor"), color >> 16U,
+        (color >> 8U) & 0xff, color & 0xff, 1);
 }
 
 void Text::draw(std::string_view text, const Font& font, float x, float y) {

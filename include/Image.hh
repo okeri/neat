@@ -31,10 +31,10 @@ class Image {
   public:
     Image(const void* data, std::size_t size, bool vflip = false) noexcept;
     Image(Image&& other) noexcept;
-    uint8_t* data() const;
-    uint32_t width() const;
-    uint32_t height() const;
-    bool valid();
+    [[nodiscard]] uint8_t* data() const noexcept;
+    [[nodiscard]] uint32_t width() const noexcept;
+    [[nodiscard]] uint32_t height() const noexcept;
+    [[nodiscard]] bool valid() const noexcept;
     ~Image();
 };
 

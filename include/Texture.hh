@@ -25,10 +25,10 @@ class Texture : private GLResource {
   public:
     Texture(unsigned bpp, unsigned width, unsigned height) noexcept;
     Texture(Texture&& rhs) noexcept;
-    Texture(const Image& image) noexcept;
+    explicit Texture(const Image& image) noexcept;
     Texture& operator=(Texture&& rhs) noexcept;
-    void bind() const;
-    void unbind() const;
+    void bind() const noexcept;
+    static void unbind();
     ~Texture();
 };
 

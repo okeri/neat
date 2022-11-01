@@ -26,15 +26,20 @@
 
 namespace neat {
 
-struct FontCommon : private NoCopy {
-    FT_Library lib;
+class FontCommon : private NoCopy {
+    FT_Library lib_;
 
-    FontCommon() {
-        FT_Init_FreeType(&lib);
+  public:
+    FontCommon() {  // NOLINT
+        FT_Init_FreeType(&lib_);
     }
 
     ~FontCommon() {
-        FT_Done_FreeType(lib);
+        FT_Done_FreeType(lib_);
+    }
+
+    FT_Library lib() {
+        return lib_;
     }
 };
 
@@ -62,7 +67,7 @@ class Font::Impl {
     float height_;
     std::optional<Texture> atlas_;
     CharInfo chars_[charCount];
-    bool valid_;
+    bool valid_{false};
 
     void copyToAtlas(unsigned int xOfs, unsigned int yOfs, unsigned int width,
         unsigned int height, void* buffer) {
@@ -71,11 +76,10 @@ class Font::Impl {
     }
 
   public:
-    Impl(const void* data, std::size_t size, int height) noexcept :
-        valid_(false) {
+    Impl(const void* data, std::size_t size, int height) noexcept {
         FT_Face face;
         auto error = FT_New_Memory_Face(
-            common_.lib, static_cast<const FT_Byte*>(data), size, 0, &face);
+            common_.lib(), static_cast<const FT_Byte*>(data), size, 0, &face);
         if (!error) {
             FT_Set_Pixel_Sizes(face, 0, height);
             valid_ = true;
@@ -97,6 +101,10 @@ class Font::Impl {
 
         width_ = fixedWidth * charCount;
         atlas_ = Texture(1, width_, height_);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 
         int x = 0;
         for (unsigned i = 0; i < charCount; i++) {
@@ -132,8 +140,8 @@ class Font::Impl {
         rhs.valid_ = false;
     }
 
-    std::vector<glm::vec4> calculate(
-        std::string_view text, const glm::vec2& coords) const {
+    [[nodiscard]] std::vector<glm::vec4> calculate(
+        std::string_view text, const glm::vec2& coords) const noexcept {
         std::vector<glm::vec4> result(6 * text.length());
         int n = 0;
         float x = coords.x;
@@ -162,7 +170,7 @@ class Font::Impl {
         return result;
     }
 
-    float width(std::string_view str) const {
+    [[nodiscard]] float width(std::string_view str) const noexcept {
         float result = 0;
         for (auto c : str) {
             auto i = c - charStart;
@@ -171,25 +179,23 @@ class Font::Impl {
         return result;
     }
 
-    float height() const {
+    [[nodiscard]] float height() const noexcept {
         return height_ * scale_;
     }
 
-    float centerX(std::string_view str) const {
+    [[nodiscard]] float centerX(std::string_view str) const noexcept {
         return width(str) / -4;
     }
 
-    bool valid() const {
+    [[nodiscard]] bool valid() const noexcept {
         return valid_;
     }
 
-    void bind() const {
+    void bind() const noexcept {
         atlas_->bind();
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     }
 
-    void unbind() const {
+    void unbind() const noexcept {
         atlas_->unbind();
     }
 };
@@ -202,31 +208,31 @@ Font::Font(Font&& rhs) noexcept : pImpl_(std::move(rhs.pImpl_)) {
 }
 
 std::vector<glm::vec4> Font::calculate(
-    std::string_view text, const glm::vec2& coords) const {
+    std::string_view text, const glm::vec2& coords) const noexcept {
     return pImpl_->calculate(text, coords);
 }
 
-void Font::bind() const {
+void Font::bind() const noexcept {
     pImpl_->bind();
 }
 
-void Font::unbind() const {
+void Font::unbind() const noexcept {
     pImpl_->unbind();
 }
 
-float Font::centerX(std::string_view str) const {
+float Font::centerX(std::string_view str) const noexcept {
     return pImpl_->centerX(str);
 }
 
-float Font::height() const {
+float Font::height() const noexcept {
     return pImpl_->height();
 }
 
-float Font::width(std::string_view str) const {
+float Font::width(std::string_view str) const noexcept {
     return pImpl_->width(str);
 }
 
-bool Font::valid() const {
+bool Font::valid() const noexcept {
     return pImpl_->valid();
 }
 

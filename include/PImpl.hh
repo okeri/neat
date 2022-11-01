@@ -35,13 +35,13 @@ class PImpl {
 
   public:
     template <class... Args>
-    explicit PImpl(Args&&... args) {
+    explicit PImpl(Args&&... args) {  // NOLINT:hicpp-member-init
         static_assert(Len == sizeof(T), "Len and sizeof(T) mismatch");
         static_assert(Align == alignof(T), "Align and alignof(T) mismatch");
         new (ptr()) T(std::forward<Args>(args)...);
     }
 
-    PImpl(PImpl&& rhs) noexcept {
+    PImpl(PImpl&& rhs) noexcept {  // NOLINT:hicpp-member-init
         new (ptr()) T(std::move(*rhs.ptr()));
     }
 

@@ -1,0 +1,1 @@
+Checks:          '-*,clang-diagnostic-*,clang-analyzer-*,android-*,concurrency-*,hicpp-*,misc-*,modernize-*,-modernize-use-trailing-return-type,-hicpp-special-member-functions,-hicpp-avoid-c-arrays,-modernize-avoid-c-arrays,-hicpp-no-array-decay,-hicpp-use-equals-default,-modernize-use-equals-default'
