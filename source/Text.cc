@@ -16,7 +16,6 @@
 
 #include <GLES3/gl3.h>
 
-#include <Binder.hh>
 #include <Text.hh>
 #include <Program.hh>
 

@@ -16,7 +16,6 @@
 
 #include <GLES3/gl3.h>
 
-#include <Binder.hh>
 #include <Program.hh>
 #include <Billboard.hh>
 
@@ -56,7 +55,7 @@ Billboard::Billboard(glm::vec4* vertices) noexcept : vertices_(vertices) {
             {{GL_FRAGMENT_SHADER, billBoardF}, {GL_VERTEX_SHADER, billBoardV}});
     }
 
-    Binder bufferBinder(buffer_);
+    buffer_.bind();
     buffer_.set(vertices_, sizeof(glm::vec4) * 6);
     glEnableVertexAttribArray(0);
 }
@@ -66,8 +65,8 @@ Billboard::Billboard(Billboard&& rhs) noexcept :
 }
 
 void Billboard::render(const Texture& texture) const noexcept {
-    Binder textureBinder(texture);
-    Binder bufferBinder(buffer_);
+    texture.bind();
+    buffer_.bind();
     program_->use();
     glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 0, 0);
     glDrawArrays(GL_TRIANGLES, 0, 6);

@@ -31,7 +31,6 @@
 #include <m3d.hh>
 #include <Program.hh>
 #include <Buffer.hh>
-#include <Binder.hh>
 
 namespace neat {
 
@@ -259,7 +258,7 @@ class Material : private NoCopy {
     }
 
     void set(const std::vector<Face>& faces) {
-        Binder ibind(ibo_);
+        ibo_.bind();
         faceCount_ = faces.size();
         glBufferData(GL_ELEMENT_ARRAY_BUFFER, faces.size() * sizeof(Face),
             faces.data(), GL_STATIC_DRAW);
@@ -359,8 +358,7 @@ class Mesh : private GLResource {
     void render() const {
         glBindVertexArray(id_);
         for (const auto& material : materials_) {
-            Binder matBinder(
-                material, std::reference_wrapper<Program>(*program_));
+            material.bind(std::reference_wrapper<Program>(*program_));
             glDrawElements(
                 GL_TRIANGLES, material.faceCount(), GL_UNSIGNED_SHORT, nullptr);
         }
