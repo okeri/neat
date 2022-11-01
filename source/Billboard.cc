@@ -16,6 +16,10 @@
 
 #include <GLES3/gl3.h>
 
+#include <array>
+
+#include <glm/vec4.hpp>
+
 #include <Program.hh>
 #include <Billboard.hh>
 
@@ -44,31 +48,49 @@ void main() {
 );
 
 // clang-format on
+std::array<glm::vec4, 6> billBoardVertices(const glm::vec4& rect) {
+    return {{{rect.x, rect.y, 1., 0.}, {rect.x, rect.w, 1., 1.},
+        {rect.z, rect.w, 0., 1.}, {rect.z, rect.w, 0., 1.},
+        {rect.z, rect.y, 0., 0.}, {rect.x, rect.y, 1., 0}}};
+}
 
 }  // namespace
 
 namespace neat {
 
-Billboard::Billboard(glm::vec4* vertices) noexcept : vertices_(vertices) {
+Billboard::Billboard(const glm::vec4& rect) noexcept {
     if (!program_) {
         program_ = Program(
             {{GL_FRAGMENT_SHADER, billBoardF}, {GL_VERTEX_SHADER, billBoardV}});
     }
 
     buffer_.bind();
-    buffer_.set(vertices_, sizeof(glm::vec4) * 6);
+    auto vertices = billBoardVertices(rect);
+    buffer_.set(vertices.data(), sizeof(glm::vec4) * 6);
     glEnableVertexAttribArray(0);
 }
 
 Billboard::Billboard(Billboard&& rhs) noexcept :
-    vertices_(rhs.vertices_), buffer_(std::move(rhs.buffer_)) {
+    buffer_(std::move(rhs.buffer_)) {
 }
 
 void Billboard::render(const Texture& texture) const noexcept {
     texture.bind();
     buffer_.bind();
     program_->use();
-    glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 0, 0);
+    glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 0, nullptr);
+    glDrawArrays(GL_TRIANGLES, 0, 6);
+}
+
+void Billboard::draw(const glm::vec4& rect, const Texture& texture) {
+    if (!program_) {
+        program_ = Program(
+            {{GL_FRAGMENT_SHADER, billBoardF}, {GL_VERTEX_SHADER, billBoardV}});
+    }
+    texture.bind();
+    program_->use();
+    auto vertices = billBoardVertices(rect);
+    glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 0, vertices.data());
     glDrawArrays(GL_TRIANGLES, 0, 6);
 }
 

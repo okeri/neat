@@ -27,21 +27,15 @@
 namespace neat {
 
 class Billboard : private NoCopy {
-    glm::vec4* vertices_;
     Buffer buffer_;
     inline static std::optional<Program> program_;
 
   public:
-    explicit Billboard(glm::vec4* vertices) noexcept;
+    explicit Billboard(const glm::vec4& rect) noexcept;
     Billboard(Billboard&& rhs) noexcept;
     void render(const Texture& texture) const noexcept;
+
+    static void draw(const glm::vec4& rect, const Texture& texture);
 };
 
-#define defineStdRect(l, t, r, b)                                       \
-    {                                                                   \
-        {l, t, 1., 0.}, {l, b, 1., 1.}, {r, b, 0., 1.}, {r, b, 0., 1.}, \
-            {r, t, 0., 0.}, {                                           \
-            l, t, 1., 0                                                 \
-        }                                                               \
-    }
 }  // namespace neat
