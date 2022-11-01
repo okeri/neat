@@ -22,7 +22,7 @@
 
 namespace neat {
 
-Buffer::Buffer(Buffer&& rhs) noexcept {
+Buffer::Buffer(Buffer&& rhs) noexcept : target_(rhs.target_) {
     swap(std::move(rhs));
 }
 
@@ -31,6 +31,7 @@ Buffer::Buffer(Target target) noexcept : target_(target) {
 }
 
 Buffer& Buffer::operator=(Buffer&& rhs) noexcept {
+    target_ = rhs.target_;
     swap(std::move(rhs));
     return *this;
 }
@@ -49,8 +50,14 @@ void Buffer::unbind() const noexcept {
     glBindBuffer(static_cast<GLenum>(target_), 0);
 }
 
-void Buffer::set(const void* data, unsigned size) noexcept {
+void Buffer::set(const void* data, unsigned size) const noexcept {
     glBufferData(GL_ARRAY_BUFFER, size, data, GL_STATIC_DRAW);
+}
+
+unsigned Buffer::size() const noexcept {
+    GLint ret;
+    glGetBufferParameteriv(static_cast<GLenum>(target_), GL_BUFFER_SIZE, &ret);
+    return ret;
 }
 
 }  // namespace neat
