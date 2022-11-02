@@ -79,7 +79,11 @@ Text::Text(const std::vector<Entry>& values, const Font& font) noexcept :
     buffer_.set(data.data(), sizeof(glm::vec4) * data.size());
 }
 
-void Text::render() noexcept {
+Text::Text(Text&& other) noexcept :
+    buffer_(std::move(other.buffer_)), font_(other.font_) {
+}
+
+void Text::render() const noexcept {
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     font_.bind();

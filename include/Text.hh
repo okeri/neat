@@ -29,6 +29,7 @@ class Text : private NoCopy {
     Buffer buffer_;
     const Font& font_;
     inline static std::optional<Program> program_;
+
     explicit Text(const Font& font) noexcept;
 
   public:
@@ -41,7 +42,8 @@ class Text : private NoCopy {
 
     Text(std::string_view text, float x, float y, const Font& font) noexcept;
     Text(const std::vector<Entry>&, const Font& font) noexcept;
-    void render() noexcept;
+    Text(Text&& other) noexcept;
+    void render() const noexcept;
     static void move(float x, float y) noexcept;
     static void setColor(unsigned int color);
     static void draw(std::string_view text, const Font& font, float x, float y);
