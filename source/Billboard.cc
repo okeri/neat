@@ -48,10 +48,11 @@ void main() {
 );
 
 // clang-format on
+
 std::array<glm::vec4, 6> billBoardVertices(const glm::vec4& rect) {
-    return {{{rect.x, rect.y, 1., 0.}, {rect.x, rect.w, 1., 1.},
-        {rect.z, rect.w, 0., 1.}, {rect.z, rect.w, 0., 1.},
-        {rect.z, rect.y, 0., 0.}, {rect.x, rect.y, 1., 0}}};
+    return {{{rect.x, rect.y, 0., 0.}, {rect.x, rect.w, 0., 1.},
+        {rect.z, rect.w, 1., 1.}, {rect.z, rect.w, 1., 1.},
+        {rect.z, rect.y, 1., 0.}, {rect.x, rect.y, 0., 0}}};
 }
 
 }  // namespace

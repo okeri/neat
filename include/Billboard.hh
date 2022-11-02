@@ -16,8 +16,9 @@
 
 #pragma once
 
-#include <glm/vec4.hpp>
 #include <optional>
+
+#include <glm/vec4.hpp>
 
 #include "NoCopy.hh"
 #include "Buffer.hh"
