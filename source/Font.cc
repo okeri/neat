@@ -149,20 +149,20 @@ class Font::Impl {
             const auto& sym = chars_[p - charStart];
 
             float x2 = x + sym.left;
-            float y2 = y - sym.top;
+            float y2 = y + sym.top;
             x += sym.advanceX;
             y += sym.advanceY;
 
-            result[n++] = glm::vec4(x2, -y2, sym.uvOffset, 0.);
+            result[n++] = glm::vec4(x2, y2, sym.uvOffset, 0.);
             result[n++] =
-                glm::vec4(x2 + sym.width, -y2, sym.uvOffset + sym.uvWidth, 0.);
+                glm::vec4(x2 + sym.width, y2, sym.uvOffset + sym.uvWidth, 0.);
             result[n++] =
-                glm::vec4(x2, -y2 - sym.height, sym.uvOffset, sym.uvHeight);
+                glm::vec4(x2, y2 - sym.height, sym.uvOffset, sym.uvHeight);
             result[n++] =
-                glm::vec4(x2 + sym.width, -y2, sym.uvOffset + sym.uvWidth, 0.);
+                glm::vec4(x2 + sym.width, y2, sym.uvOffset + sym.uvWidth, 0.);
             result[n++] =
-                glm::vec4(x2, -y2 - sym.height, sym.uvOffset, sym.uvHeight);
-            result[n++] = glm::vec4(x2 + sym.width, -y2 - sym.height,
+                glm::vec4(x2, y2 - sym.height, sym.uvOffset, sym.uvHeight);
+            result[n++] = glm::vec4(x2 + sym.width, y2 - sym.height,
                 sym.uvOffset + sym.uvWidth, sym.uvHeight);
         }
         return result;
