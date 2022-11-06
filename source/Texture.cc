@@ -25,7 +25,7 @@ namespace neat {
 Texture::Texture(unsigned bpp, unsigned width, unsigned height) noexcept {
     glGenTextures(1, &id_);
     bind();
-    auto format = bpp == 1 ? GL_RED : GL_RGB8;
+    auto format = bpp == 1 ? GL_RED : GL_RGBA8;
     glTexImage2D(GL_TEXTURE_2D, 0, format, width, height, 0, format,
         GL_UNSIGNED_BYTE, nullptr);
     glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
@@ -34,8 +34,9 @@ Texture::Texture(unsigned bpp, unsigned width, unsigned height) noexcept {
 Texture::Texture(const Image& image) noexcept {
     glGenTextures(1, &id_);
     bind();
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB8, image.width(), image.height(), 0,
-        GL_RGB, GL_UNSIGNED_BYTE, image.data());
+    glTexImage2D(GL_TEXTURE_2D, 0, image.alpha() ? GL_RGBA8 : GL_RGB8,
+        image.width(), image.height(), 0, image.alpha() ? GL_RGBA : GL_RGB,
+        GL_UNSIGNED_BYTE, image.data());
     glGenerateMipmap(GL_TEXTURE_2D);
 }
 

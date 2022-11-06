@@ -103,9 +103,7 @@ void Image::load(const void* data, size_t size) noexcept {
         png_set_palette_to_rgb(pngPtr);
     }
 
-    if (fmt == PNG_COLOR_TYPE_RGBA) {
-        png_set_strip_alpha(pngPtr);
-    }
+    alpha_ = (fmt == PNG_COLOR_TYPE_RGBA);
 
     if (bit_depth < 8) {
         png_set_packing(pngPtr);
@@ -152,6 +150,10 @@ Image::~Image() {
 
 uint8_t* Image::data() const noexcept {
     return data_;
+}
+
+bool Image::alpha() const noexcept {
+    return alpha_;
 }
 
 }  // namespace neat
