@@ -50,6 +50,10 @@ void Buffer::unbind() const noexcept {
     glBindBuffer(static_cast<GLenum>(target_), 0);
 }
 
+void Buffer::unbind(Target target) {
+    glBindBuffer(static_cast<GLenum>(target), 0);
+}
+
 void Buffer::set(const void* data, unsigned size) const noexcept {
     glBufferData(GL_ARRAY_BUFFER, size, data, GL_STATIC_DRAW);
 }

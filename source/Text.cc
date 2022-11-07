@@ -107,7 +107,7 @@ void Text::setColor(unsigned int color) {
 
 void Text::draw(std::string_view text, const Font& font, float x, float y) {
     auto data = font.calculate(text, x, y);
-
+    Buffer::unbind(Buffer::Target::Array);
     font.bind();
     if (!program_) {
         program_ =

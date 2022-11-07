@@ -33,10 +33,13 @@ class Buffer : private GLResource {
     void unbind() const noexcept;
     void set(const void* data, unsigned size) const noexcept;
     [[nodiscard]] unsigned size() const noexcept;
+
     template <typename _Tp>
     void set(const std::vector<_Tp>& data) const noexcept {
         set(data.data(), data.size() * sizeof(_Tp));
     }
+
+    static void unbind(Target target);
 
   private:
     Target target_;

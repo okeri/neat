@@ -50,11 +50,12 @@ void main() {
 // clang-format on
 
 std::array<glm::vec4, 6> billBoardVertices(const glm::vec4& rect) {
-    return {{{rect.x, rect.w, 0., 1.}, {rect.x, rect.y, 0., 0.},
-        {rect.z, rect.y, 1., 0.}, {rect.x, rect.w, 0., 1.},
-        {rect.z, rect.y, 1., 0.}, {rect.z, rect.w, 1., 1}}};
+    return {{{rect.x, rect.w, 0.f, 1.f}, {rect.x, rect.y, 0.f, 0.f},
+        {rect.z, rect.y, 1.f, 0.f}, {rect.x, rect.w, 0.f, 1.f},
+        {rect.z, rect.y, 1.f, 0.f}, {rect.z, rect.w, 1.f, 1.f}}};
 }
 
+// TODO: consider shader-based alpha-blending
 class Blending : private neat::NoCopy {
   public:
     Blending() noexcept {
@@ -93,6 +94,7 @@ void Billboard::render(const Texture& texture) const noexcept {
 void Billboard::draw(const glm::vec4& rect, const Texture& texture) {
     Blending blenging;
     texture.bind();
+    Buffer::unbind(Buffer::Target::Array);
     program_->use();
     auto vertices = billBoardVertices(rect);
     glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 0, vertices.data());
