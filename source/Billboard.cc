@@ -50,21 +50,27 @@ void main() {
 // clang-format on
 
 std::array<glm::vec4, 6> billBoardVertices(const glm::vec4& rect) {
-    return {{{rect.x, rect.y, 0., 0.}, {rect.x, rect.w, 0., 1.},
-        {rect.z, rect.w, 1., 1.}, {rect.z, rect.w, 1., 1.},
-        {rect.z, rect.y, 1., 0.}, {rect.x, rect.y, 0., 0}}};
+    return {{{rect.x, rect.w, 0., 1.}, {rect.x, rect.y, 0., 0.},
+        {rect.z, rect.y, 1., 0.}, {rect.x, rect.w, 0., 1.},
+        {rect.z, rect.y, 1., 0.}, {rect.z, rect.w, 1., 1}}};
 }
+
+class Blending : private neat::NoCopy {
+  public:
+    Blending() noexcept {
+        glEnable(GL_BLEND);
+    }
+    ~Blending() noexcept {
+        glDisable(GL_BLEND);
+    }
+};
 
 }  // namespace
 
 namespace neat {
 
 Billboard::Billboard(const glm::vec4& rect) noexcept {
-    if (!program_) {
-        program_ = Program(
-            {{GL_FRAGMENT_SHADER, billBoardF}, {GL_VERTEX_SHADER, billBoardV}});
-    }
-
+    initProgram();
     buffer_.bind();
     auto vertices = billBoardVertices(rect);
     buffer_.set(vertices.data(), sizeof(glm::vec4) * 6);
@@ -76,6 +82,7 @@ Billboard::Billboard(Billboard&& rhs) noexcept :
 }
 
 void Billboard::render(const Texture& texture) const noexcept {
+    Blending blenging;
     texture.bind();
     buffer_.bind();
     program_->use();
@@ -84,15 +91,20 @@ void Billboard::render(const Texture& texture) const noexcept {
 }
 
 void Billboard::draw(const glm::vec4& rect, const Texture& texture) {
-    if (!program_) {
-        program_ = Program(
-            {{GL_FRAGMENT_SHADER, billBoardF}, {GL_VERTEX_SHADER, billBoardV}});
-    }
+    Blending blenging;
     texture.bind();
     program_->use();
     auto vertices = billBoardVertices(rect);
     glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 0, vertices.data());
     glDrawArrays(GL_TRIANGLES, 0, 6);
+}
+
+void Billboard::initProgram() {
+    if (!program_) {
+        program_ = Program(
+            {{GL_FRAGMENT_SHADER, billBoardF}, {GL_VERTEX_SHADER, billBoardV}});
+    }
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 }
 
 }  // namespace neat

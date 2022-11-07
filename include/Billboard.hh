@@ -30,6 +30,7 @@ namespace neat {
 class Billboard : private NoCopy {
     Buffer buffer_;
     inline static std::optional<Program> program_;
+    static void initProgram();
 
   public:
     explicit Billboard(const glm::vec4& rect) noexcept;
