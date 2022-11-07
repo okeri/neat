@@ -41,18 +41,8 @@ void cbread(void* data, uint8_t* dst, size_t size) {
 namespace neat {
 
 // NOLINTNEXTLINE:hicpp-member-init
-Image::Image(const void* data, size_t size, bool vflip) noexcept {
+Image::Image(const void* data, size_t size) noexcept {
     load(data, size);
-    if (valid() && vflip) {
-        auto* flipped = new uint8_t[size_];
-        auto stride = size_ / height_;
-        auto from = data_, to = flipped + size_ - stride;
-        for (; to > flipped; from += stride, to -= stride) {
-            std::copy(from, from + stride, to);
-        }
-        delete[] data_;
-        data_ = flipped;
-    }
 }
 
 Image::Image(Image&& other) noexcept {
@@ -61,6 +51,7 @@ Image::Image(Image&& other) noexcept {
         size_ = other.size_;
         width_ = other.width_;
         height_ = other.height_;
+        alpha_ = other.alpha_;
         other.size_ = 0;
     }
 }

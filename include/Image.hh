@@ -29,7 +29,7 @@ class Image {
     void load(const void* data, std::size_t size) noexcept;
 
   public:
-    Image(const void* data, std::size_t size, bool vflip = false) noexcept;
+    Image(const void* data, std::size_t size) noexcept;
     Image(Image&& other) noexcept;
     [[nodiscard]] uint8_t* data() const noexcept;
     [[nodiscard]] uint32_t width() const noexcept;
