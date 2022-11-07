@@ -183,7 +183,7 @@ class Font::Impl {
     }
 
     [[nodiscard]] float centerX(std::string_view str) const noexcept {
-        return width(str) / -4;
+        return width(str) / -2;
     }
 
     [[nodiscard]] bool valid() const noexcept {
