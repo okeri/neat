@@ -172,7 +172,8 @@ class Font::Impl {
         float result = 0;
         for (auto c : str) {
             auto i = c - charStart;
-            result += chars_[i].advanceX + chars_[i].left + chars_[i].width;
+            result +=
+                (chars_[i].advanceX + chars_[i].left + chars_[i].width) / 2;
         }
         return result;
     }
