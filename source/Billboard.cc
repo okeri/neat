@@ -14,14 +14,14 @@
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-#include <GLES3/gl3.h>
-
 #include <array>
 
 #include <glm/vec4.hpp>
 
 #include <Program.hh>
 #include <Billboard.hh>
+
+#include "Blending.hh"
 
 namespace {
 
@@ -54,17 +54,6 @@ std::array<glm::vec4, 6> billBoardVertices(const glm::vec4& rect) {
         {rect.z, rect.y, 1.f, 0.f}, {rect.x, rect.w, 0.f, 1.f},
         {rect.z, rect.y, 1.f, 0.f}, {rect.z, rect.w, 1.f, 1.f}}};
 }
-
-// TODO: consider shader-based alpha-blending
-class Blending : private neat::NoCopy {
-  public:
-    Blending() noexcept {
-        glEnable(GL_BLEND);
-    }
-    ~Blending() noexcept {
-        glDisable(GL_BLEND);
-    }
-};
 
 }  // namespace
 

@@ -14,10 +14,10 @@
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-#include <GLES3/gl3.h>
-
 #include <Text.hh>
 #include <Program.hh>
+
+#include "Blending.hh"
 
 namespace neat {
 
@@ -58,7 +58,7 @@ Text::Text(const Font& font) noexcept : font_(font) {
         program_ =
             Program({{GL_FRAGMENT_SHADER, textF}, {GL_VERTEX_SHADER, textV}});
     }
-
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     program_->use();
     buffer_.bind();
 }
@@ -84,14 +84,12 @@ Text::Text(Text&& other) noexcept :
 }
 
 void Text::render() const noexcept {
-    glEnable(GL_BLEND);
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    Blending blending;
     font_.bind();
     buffer_.bind();
     program_->use();
     glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 0, nullptr);
     glDrawArrays(GL_TRIANGLES, 0, buffer_.size() / sizeof(glm::vec4));
-    glDisable(GL_BLEND);
 }
 
 void Text::move(float x, float y) noexcept {
@@ -101,7 +99,7 @@ void Text::move(float x, float y) noexcept {
 
 void Text::setColor(unsigned int color) {
     program_->use();
-    glUniform4f(program_->uniform("inputColor"), color >> 16U,
+    glUniform4f(program_->uniform("inputColor"), (color >> 16U) & 0xff,
         (color >> 8U) & 0xff, color & 0xff, 1);
 }
 
@@ -115,11 +113,9 @@ void Text::draw(std::string_view text, const Font& font, float x, float y) {
     }
 
     program_->use();
-    glEnable(GL_BLEND);
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    Blending blending;
     glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 0, data.data());
     glDrawArrays(GL_TRIANGLES, 0, data.size());
-    glDisable(GL_BLEND);
 }
 
 Text::Entry::Entry(std::string_view t, float startx, float starty) noexcept :
