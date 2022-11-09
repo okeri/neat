@@ -45,7 +45,7 @@ class Text : private NoCopy {
     Text(Text&& other) noexcept;
     void render() const noexcept;
     static void move(float x, float y) noexcept;
-    static void setColor(unsigned int color);
+    static void setColor(float r, float g, float b);
     static void draw(std::string_view text, const Font& font, float x, float y);
 };
 

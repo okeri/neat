@@ -97,10 +97,9 @@ void Text::move(float x, float y) noexcept {
     glUniform2f(program_->uniform("shift"), x, y);
 }
 
-void Text::setColor(unsigned int color) {
+void Text::setColor(float r, float g, float b) {
     program_->use();
-    glUniform4f(program_->uniform("inputColor"), (color >> 16U) & 0xff,
-        (color >> 8U) & 0xff, color & 0xff, 1);
+    glUniform4f(program_->uniform("inputColor"), r, g, b, 1.f);
 }
 
 void Text::draw(std::string_view text, const Font& font, float x, float y) {
