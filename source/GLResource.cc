@@ -20,11 +20,16 @@
 
 namespace neat {
 
-GLResource::GLResource() : id_(0) {
+GLResource::GLResource() noexcept : id_(0) {
 }
 
-void GLResource::swap(GLResource&& other) noexcept {
-    std::swap(id_, other.id_);
+GLResource::GLResource(GLResource&& rhs) noexcept : id_(rhs.id_) {
+    rhs.id_ = 0;
+}
+
+GLResource& GLResource::operator=(GLResource&& rhs) noexcept {
+    std::swap(id_, rhs.id_);
+    return *this;
 }
 
 }  // namespace neat

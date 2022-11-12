@@ -91,12 +91,11 @@ Program::Program(const std::vector<ShaderInfo>& shaders) noexcept {
     });
 }
 
-Program::Program(Program&& rhs) noexcept {
-    swap(std::move(rhs));
+Program::Program(Program&& rhs) noexcept : GLResource(std::move(rhs)) {
 }
 
 Program& Program::operator=(Program&& rhs) noexcept {
-    swap(std::move(rhs));
+    GLResource::operator=(std::move(rhs));
     return *this;
 }
 

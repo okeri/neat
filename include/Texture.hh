@@ -23,9 +23,10 @@ namespace neat {
 
 class Texture : private GLResource {
   public:
-    Texture(unsigned bpp, unsigned width, unsigned height) noexcept;
-    Texture(Texture&& rhs) noexcept;
     explicit Texture(const Image& image) noexcept;
+    Texture(const void* data, unsigned bpp, unsigned width,
+        unsigned height) noexcept;
+    Texture(Texture&& rhs) noexcept;
     Texture& operator=(Texture&& rhs) noexcept;
     void bind() const noexcept;
     static void unbind();

@@ -24,7 +24,7 @@ class Object {
     const Model& model_;
     const glm::mat4& vp_;
     const glm::mat4& view_;
-    glm::mat4 mm_;
+    glm::mat4 modelMatrix_;
 
   public:
     Object(const Model& model, const glm::mat4& vp, const glm::mat4& view,

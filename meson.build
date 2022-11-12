@@ -25,6 +25,12 @@ deps = [freetype2,
 	libpng,
 	stdfs]
 
+assimp = dependency('assimp', required: get_option('assimp'))
+if assimp.found()
+  add_project_arguments('-DENABLE_ASSIMP', language: 'cpp')
+  deps += assimp
+endif
+
 if get_option('platform') == 'wayland'
   add_project_arguments(['-DLINUX','-DWAYLAND'], language : 'cpp')
   subdir('wayland')

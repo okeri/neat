@@ -15,33 +15,35 @@
 */
 
 #include <glm/gtc/type_ptr.hpp>
+
 #include <Object.hh>
 
 namespace neat {
 
 Object::Object(const Model& model, const glm::mat4& vp, const glm::mat4& view,
     const glm::mat4& modelMatrix) noexcept :
-    model_(model), vp_(vp), view_(view), mm_(modelMatrix) {
+    model_(model), vp_(vp), view_(view), modelMatrix_(modelMatrix) {
 }
 
 void Object::render() const {
-    model_.render(vp_ * mm_, view_ * mm_, glm::transpose(glm::inverse(mm_)));
+    model_.render(vp_ * modelMatrix_, view_ * modelMatrix_,
+        glm::transpose(glm::inverse(modelMatrix_)));
 }
 
 void Object::translate(const glm::vec3& t) {
-    mm_ = glm::translate(mm_, t);
+    modelMatrix_ = glm::translate(modelMatrix_, t);
 }
 
 void Object::rotate(float angle, const glm::vec3& r) {
-    mm_ = glm::rotate(mm_, angle, r);
+    modelMatrix_ = glm::rotate(modelMatrix_, angle, r);
 }
 
 void Object::setPosition(const glm::mat4& p) {
-    mm_ = p;
+    modelMatrix_ = p;
 }
 
 glm::mat4 Object::position() const {
-    return mm_;
+    return modelMatrix_;
 }
 
 }  // namespace neat

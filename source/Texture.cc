@@ -22,33 +22,31 @@
 
 namespace neat {
 
-Texture::Texture(unsigned bpp, unsigned width, unsigned height) noexcept {
+Texture::Texture(
+    const void* data, unsigned bpp, unsigned width, unsigned height) noexcept {
+    if (bpp == 0 || bpp > 4) {
+        return;
+    }
     glGenTextures(1, &id_);
     bind();
-    auto format = bpp == 1 ? GL_RED : GL_RGBA8;
-    glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-    glTexImage2D(GL_TEXTURE_2D, 0, format, width, height, 0, format,
-        GL_UNSIGNED_BYTE, nullptr);
-}
-
-Texture::Texture(const Image& image) noexcept {
-    glGenTextures(1, &id_);
-    bind();
-    if (!image.alpha()) {
+    if (bpp != 4) {
         glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
     }
-    glTexImage2D(GL_TEXTURE_2D, 0, image.alpha() ? GL_RGBA8 : GL_RGB8,
-        image.width(), image.height(), 0, image.alpha() ? GL_RGBA : GL_RGB,
-        GL_UNSIGNED_BYTE, image.data());
+    GLint formats[] = {GL_RED, GL_RG, GL_RGB, GL_RGBA};
+    glTexImage2D(GL_TEXTURE_2D, 0, formats[bpp - 1], width, height, 0,
+        formats[bpp - 1], GL_UNSIGNED_BYTE, data);
     glGenerateMipmap(GL_TEXTURE_2D);
 }
 
-Texture::Texture(Texture&& rhs) noexcept {
-    swap(std::move(rhs));
+Texture::Texture(const Image& image) noexcept :
+    Texture(image.data(), image.bpp(), image.width(), image.height()) {
+}
+
+Texture::Texture(Texture&& rhs) noexcept : GLResource(std::move(rhs)) {
 }
 
 Texture& Texture::operator=(Texture&& rhs) noexcept {
-    swap(std::move(rhs));
+    GLResource::operator=(std::move(rhs));
     return *this;
 }
 

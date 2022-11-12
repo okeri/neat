@@ -39,8 +39,8 @@ class Program : private GLResource {
     Program(Program&& rhs) noexcept;
     Program& operator=(Program&& rhs) noexcept;
     [[nodiscard]] unsigned int uniform(const char* name) noexcept;
+    [[nodiscard]] unsigned int getRawId() const noexcept;
     void use() const noexcept;
-    unsigned int getRawId() const noexcept;
 };
 
 }  // namespace neat

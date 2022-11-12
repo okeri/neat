@@ -1,2 +1,2 @@
-option('assimp', type : 'feature', value : 'disabled')
+option('assimp', type : 'feature', value : 'auto')
 option('platform', type : 'combo', choices : ['wayland', 'x11', 'android'], value : 'wayland')

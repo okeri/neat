@@ -51,7 +51,6 @@ Image::Image(Image&& other) noexcept {
         size_ = other.size_;
         width_ = other.width_;
         height_ = other.height_;
-        alpha_ = other.alpha_;
         other.size_ = 0;
     }
 }
@@ -93,8 +92,6 @@ void Image::load(const void* data, size_t size) noexcept {
     if (fmt == PNG_COLOR_TYPE_PALETTE) {
         png_set_palette_to_rgb(pngPtr);
     }
-
-    alpha_ = (fmt == PNG_COLOR_TYPE_RGBA);
 
     if (bit_depth < 8) {
         png_set_packing(pngPtr);
@@ -143,8 +140,8 @@ uint8_t* Image::data() const noexcept {
     return data_;
 }
 
-bool Image::alpha() const noexcept {
-    return alpha_;
+unsigned Image::bpp() const noexcept {
+    return size_ / (width_ * height_);
 }
 
 }  // namespace neat

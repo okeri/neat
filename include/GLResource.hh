@@ -23,10 +23,11 @@ namespace neat {
 class GLResource : private NoCopy {
   protected:
     unsigned int id_;
-    GLResource();
+    GLResource() noexcept;
 
   public:
-    void swap(GLResource&& other) noexcept;
+    GLResource(GLResource&& rhs) noexcept;
+    GLResource& operator=(GLResource&& rhs) noexcept;
 };
 
 }  // namespace neat
