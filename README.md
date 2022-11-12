@@ -6,19 +6,11 @@ simple low-level graphic engine
  * [glm](https://glm.g-truc.net/)
  * [freetype2](https://www.freetype.org/)
  * [libpng](http://www.libpng.org/)
- * wayland-egl(Linux build only)
+ * wayland-egl (Linux-wayland build only)
+ * wayland-cursor (Linux-wayland build only)
+ * egl (Linux-wayland build only)
+ * x11 (Linux-xorg build only)
+ * glx (Linux-xorg build only)
+ * [assimp](https://github.com/assimp/assimp) (optional)
  * android-ndk(Android build only)
 
-## TODO:
-  * Texture cache (allow GPU texture sharing between various library classes)
-  * Fong lightning model?
-  * Basic visual effects (e.g. water, fog, fire, explosion?)
-  + Simple sample app (including Java support code for android) 
-  + add iOS support
-  
-## Done:
-  * Render billboards
-  * Render text using fonts
-  * Load and render 3ds models
-  * Support png textures
-  * Provide some files for building 
