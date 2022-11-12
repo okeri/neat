@@ -14,10 +14,10 @@
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
+#pragma once
+
 #include <string_view>
 #include <vector>
-
-#pragma once
 
 #ifdef ANDROID
 #include <android/asset_manager.h>

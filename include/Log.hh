@@ -17,6 +17,7 @@
 #pragma once
 
 #include <sstream>
+
 #include "NoCopy.hh"
 
 namespace neat {
