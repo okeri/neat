@@ -54,7 +54,7 @@ void Buffer::unbind(Target target) {
     glBindBuffer(static_cast<GLenum>(target), 0);
 }
 
-void Buffer::set(const void* data, unsigned size) const noexcept {
+void Buffer::set(const void* data, std::size_t size) const noexcept {
     glBufferData(static_cast<GLenum>(target_), size, data, GL_STATIC_DRAW);
 }
 

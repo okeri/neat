@@ -31,7 +31,7 @@ class Buffer : private GLResource {
     Buffer& operator=(Buffer&& rhs) noexcept;
     void bind() const noexcept;
     void unbind() const noexcept;
-    void set(const void* data, unsigned size) const noexcept;
+    void set(const void* data, std::size_t size) const noexcept;
     [[nodiscard]] unsigned size() const noexcept;
 
     template <typename _Tp>
