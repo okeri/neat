@@ -1,0 +1,17 @@
+---
+# We'll use defaults from the LLVM style, but with 4 columns indentation.
+BasedOnStyle: Google
+IndentWidth: 4
+---
+Language: Cpp
+DerivePointerAlignment: false
+PointerAlignment: Left
+AccessModifierOffset: -2
+AlignAfterOpenBracket: DontAlign
+AllowShortFunctionsOnASingleLine: None
+BreakConstructorInitializers: AfterColon
+#BreakInheritanceList: AfterColon
+SpacesBeforeTrailingComments: 2
+SortIncludes: false
+BinPackArguments: true
+BinPackParameters: true
