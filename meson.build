@@ -2,7 +2,7 @@ project('neat',
         ['cpp', 'c'],
         license: 'GPL3',
         default_options: ['buildtype=debug',
-                          'cpp_std=c++20',
+                          'cpp_std=c++17',
                           'warning_level=3'])
 
 cc = meson.get_compiler('cpp')
