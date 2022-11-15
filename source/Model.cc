@@ -14,6 +14,10 @@
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
+#include <array>
+
+#include <Model.hh>
+
 #ifdef ENABLE_ASSIMP
 #include "assimp_loader.hh"
 #else
@@ -28,7 +32,6 @@ const char* modelV = GLSL(
 layout (location = 0) in vec3 vertex;
 layout (location = 1) in vec3 normal;
 layout (location = 2) in vec2 texcoord;
-//layout (location = 3) in u16vec3 faces;
 
 struct Material {
     vec3 diffuse;
@@ -62,6 +65,9 @@ void main() {
 
     vec3 color = material.ambient;
     for (int light = 0; light < maxLightCount; ++light) {
+        if (lights[light].color == vec3(0.f,0.f,0.f)) {
+	    continue;
+        }
         vec3 lightDir = normalize(lights[light].position - vertPos);
         float lambertian = max(dot(lightDir, norm), 0.0);
         float specular = 0.0;
@@ -96,18 +102,40 @@ void main() {
 
 namespace neat {
 
-class Model::Impl {
+class Model::Impl : private GLResource {
+    enum BufferType : unsigned { Vertexes, Normals, TexCoords, Count };
+    std::array<Buffer, BufferType::Count> buffers_;
     std::vector<Mesh> meshes_;
     std::vector<Material> materials_;
 
   public:
-    explicit Impl(
-        std::pair<std::vector<Mesh>, std::vector<Material>>&& data) noexcept :
-        meshes_(std::move(data.first)), materials_(std::move(data.second)) {
+    explicit Impl(ModelData&& data) noexcept :
+        meshes_(std::move(data.meshes)), materials_(std::move(data.materials)) {
+        glGenVertexArrays(1, &id_);
+        glBindVertexArray(id_);
+
+        glEnableVertexAttribArray(Vertexes);
+        buffers_[Vertexes].bind();
+        buffers_[Vertexes].set(data.vertices);
+        glVertexAttribPointer(Vertexes, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
+
+        glEnableVertexAttribArray(Normals);
+        buffers_[Normals].bind();
+        buffers_[Normals].set(data.normals);
+        glVertexAttribPointer(Normals, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
+
+        glEnableVertexAttribArray(TexCoords);
+        buffers_[TexCoords].bind();
+        buffers_[TexCoords].set(data.texcoords);
+        glVertexAttribPointer(TexCoords, 2, GL_FLOAT, GL_FALSE, 0, nullptr);
+        glBindVertexArray(0);
     }
 
     Impl(Impl&& rhs) noexcept :
-        meshes_(std::move(rhs.meshes_)), materials_(std::move(rhs.materials_)) {
+        GLResource(std::move(rhs)),
+        buffers_(std::move(rhs.buffers_)),
+        meshes_(std::move(rhs.meshes_)),
+        materials_(std::move(rhs.materials_)) {
     }
 
     [[nodiscard]] bool valid() const noexcept {
@@ -115,13 +143,18 @@ class Model::Impl {
     }
 
     void render(Program& program) const noexcept {
+        glBindVertexArray(id_);
         for (const auto& mesh : meshes_) {
             const auto& material = materials_[mesh.materialIndex()];
             mesh.bind();
             material.bind(program);
             mesh.render();
         }
-        Mesh::unbind();
+        glBindVertexArray(0);
+    }
+
+    ~Impl() noexcept {
+        glDeleteVertexArrays(1, &id_);
     }
 };
 
@@ -137,7 +170,7 @@ Model::Model(std::string_view filename) noexcept : pImpl_(loadModel(filename)) {
 Model::Model(Model&& rhs) noexcept : pImpl_(std::move(rhs.pImpl_)) {
 }
 
-Model::~Model() {
+Model::~Model() noexcept {
 }
 
 void Model::render(const glm::mat4& mvp, const glm::mat4& mv,

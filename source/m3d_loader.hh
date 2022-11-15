@@ -18,13 +18,11 @@
 
 #include <cstdint>
 #include <filesystem>
-#include <Asset.hh>
 
-#include <Model.hh>
+#include <Asset.hh>
 #include <Log.hh>
 
-#include "Material.hh"
-#include "Mesh.hh"
+#include "ModelData.hh"
 
 namespace neat::m3d {
 
@@ -187,15 +185,10 @@ class M3dStream : public Asset {
 
 namespace neat {
 
-inline std::pair<std::vector<Mesh>, std::vector<Material>> loadModel(
-    std::string_view filename) noexcept {
+inline ModelData loadModel(std::string_view filename) noexcept {
     auto parentPath = std::filesystem::path(filename).parent_path();
     m3d::M3dStream source(filename);
-    std::vector<glm::vec3> vertices;
-    std::vector<glm::vec3> normals;
-    std::vector<glm::vec2> texcoords;
-    std::vector<Mesh::Face> faces;
-    std::pair<std::vector<Mesh>, std::vector<Material>> result;
+    ModelData result;
 
     if (source.length() == 0) {
         Log() << "error: cannot open file " << filename;
@@ -235,12 +228,12 @@ inline std::pair<std::vector<Mesh>, std::vector<Material>> loadModel(
                     return false;
             }
         });
-        result.second.emplace_back(std::move(material));
+        result.materials.emplace_back(std::move(material));
         return true;
     };
 
     auto handleMeshBlock = [&](uint32_t len) {
-        std::vector<uint16_t> materialFaces;
+        std::vector<std::vector<uint16_t>> materialFaces;
         std::vector<glm::vec<3, uint16_t>> faceDescriptos;
         auto handleFaces = [&source, &materialFaces](
                                const m3d::M3dStream::Header& header) {
@@ -249,9 +242,8 @@ inline std::pair<std::vector<Mesh>, std::vector<Material>> loadModel(
                 case m3d::Chunk::FacesMaterial: {
                     source.readChars(header.len);
                     source.read(&count, sizeof(uint16_t));
-                    materialFaces.resize(count);
-                    source.read(materialFaces.data(),
-                        sizeof(uint16_t) * count);  // here ?
+                    auto faces = materialFaces.emplace_back(count);
+                    source.read(faces.data(), sizeof(uint16_t) * count);
                 }
                     return true;
 
@@ -271,8 +263,9 @@ inline std::pair<std::vector<Mesh>, std::vector<Material>> loadModel(
             switch (static_cast<m3d::Chunk>(header.id)) {
                 case m3d::Chunk::Vertices: {
                     source.read(&count, sizeof(uint16_t));
-                    vertices.resize(count);
-                    source.read(vertices.data(), sizeof(glm::vec3) * count);
+                    result.vertices.resize(count);
+                    source.read(
+                        result.vertices.data(), sizeof(glm::vec3) * count);
                 }
                     return true;
 
@@ -294,9 +287,10 @@ inline std::pair<std::vector<Mesh>, std::vector<Material>> loadModel(
 
                 case m3d::Chunk::MappingCoords:
                     source.read(&count, sizeof(uint16_t));
-                    texcoords.resize(count);
-                    source.read(texcoords.data(), count * sizeof(glm::vec2));
-                    for (auto& v : texcoords) {
+                    result.texcoords.resize(count);
+                    source.read(
+                        result.texcoords.data(), count * sizeof(glm::vec2));
+                    for (auto& v : result.texcoords) {
                         v.y = 1 - v.y;
                     }
                     return true;
@@ -306,33 +300,38 @@ inline std::pair<std::vector<Mesh>, std::vector<Material>> loadModel(
             }
         });
 
-        if (!vertices.empty() && !faceDescriptos.empty()) {
-            faces.reserve(materialFaces.size() * 3);
-            for (auto face = 0u; face < materialFaces.size(); ++face) {
-                faces.push_back(
-                    static_cast<Mesh::Face>(faceDescriptos[face].x));
-                faces.push_back(
-                    static_cast<Mesh::Face>(faceDescriptos[face].y));
-                faces.push_back(
-                    static_cast<Mesh::Face>(faceDescriptos[face].z));
+        if (!result.vertices.empty() && !faceDescriptos.empty()) {
+            std::vector<Mesh::Face> faces;
+            size_t face = 0;
+            for (size_t meshIndex = 0; meshIndex != materialFaces.size();
+                 ++meshIndex) {
+                faces.reserve(materialFaces[meshIndex].size() * 3);
+                for (auto end = materialFaces[meshIndex].size() + face;
+                     face < end; ++face) {
+                    faces.push_back(
+                        static_cast<Mesh::Face>(faceDescriptos[face].x));
+                    faces.push_back(
+                        static_cast<Mesh::Face>(faceDescriptos[face].y));
+                    faces.push_back(
+                        static_cast<Mesh::Face>(faceDescriptos[face].z));
+                }
+                result.meshes.emplace_back(
+                    faces.data(), faces.size(), meshIndex);
+                faces.clear();
             }
-
-            normals.resize(vertices.size(), glm::vec3(0, 0, 0));
+            result.normals.resize(result.vertices.size(), glm::vec3(0, 0, 0));
             for (const auto& face : faceDescriptos) {
-                auto faceNormal =
-                    glm::cross(vertices[face.y] - vertices[face.x],
-                        vertices[face.z] - vertices[face.x]);
-                normals[face.x] += faceNormal;
-                normals[face.y] += faceNormal;
-                normals[face.z] += faceNormal;
+                auto faceNormal = glm::cross(
+                    result.vertices[face.y] - result.vertices[face.x],
+                    result.vertices[face.z] - result.vertices[face.x]);
+                result.normals[face.x] += faceNormal;
+                result.normals[face.y] += faceNormal;
+                result.normals[face.z] += faceNormal;
             }
 
-            for (auto& normal : normals) {
+            for (auto& normal : result.normals) {
                 normal = glm::normalize(normal);
             }
-            result.first.emplace_back(vertices.data(), normals.data(),
-                texcoords.data(), vertices.size(), faces.data(), faces.size(),
-                result.second.size() - 1);
         }
         return true;
     };

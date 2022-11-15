@@ -23,19 +23,16 @@
 #include <assimp/postprocess.h>
 
 #include <Asset.hh>
-#include <Model.hh>
 #include <Log.hh>
 
-#include "Mesh.hh"
-#include "Material.hh"
+#include "ModelData.hh"
 
 namespace neat {
 
-inline std::pair<std::vector<Mesh>, std::vector<Material>> loadModel(
-    std::string_view filename) noexcept {
+inline ModelData loadModel(std::string_view filename) noexcept {
     Asset asset(filename);
     std::vector<uint8_t> data;
-    std::pair<std::vector<Mesh>, std::vector<Material>> result;
+    ModelData result;
     if (!asset.valid() || asset.read(data) == Asset::Error) {
         Log() << "error: cannot open file " << filename;
         return result;
@@ -44,18 +41,18 @@ inline std::pair<std::vector<Mesh>, std::vector<Material>> loadModel(
     static auto importer = Assimp::Importer();
     auto scene = const_cast<aiScene*>(
         importer.ReadFileFromMemory(data.data(), data.size(),
-            aiProcess_GenSmoothNormals | aiProcess_SortByPType |
-                aiProcess_Triangulate | aiProcess_FlipUVs));
+            aiProcess_GenNormals | aiProcess_FlipUVs |
+                aiProcess_JoinIdenticalVertices));
     if (scene == nullptr || scene->mRootNode == nullptr) {
         Log() << importer.GetErrorString();
         return result;
     }
     auto parentPath = std::filesystem::path(filename).parent_path();
-    result.second.resize(scene->mNumMaterials);
+    result.materials.resize(scene->mNumMaterials);
 
     aiColor3D color;
     for (auto i = 0u; i < scene->mNumMaterials; ++i) {
-        auto& material = result.second[i];
+        auto& material = result.materials[i];
         auto* aiMat = scene->mMaterials[i];
         if (aiMat->Get(AI_MATKEY_COLOR_AMBIENT, color) == AI_SUCCESS) {
             material.setAmbient({color.r, color.g, color.b});
@@ -97,31 +94,48 @@ inline std::pair<std::vector<Mesh>, std::vector<Material>> loadModel(
             material.setTexture(std::move(tex.value()));
         }
     }
-
+    auto vertCount = 0u;
     for (auto meshIndex = 0u; meshIndex < scene->mNumMeshes; ++meshIndex) {
-        const auto* aimesh = scene->mMeshes[meshIndex];
+        vertCount += scene->mMeshes[meshIndex]->mNumVertices;
+    }
+    result.vertices.reserve(vertCount);
+    result.normals.reserve(vertCount);
+    result.texcoords.resize(vertCount, {0.f, 0.f});
 
-        std::vector<glm::vec2> texcoords(aimesh->mNumVertices, {0., 0.});
+    for (auto meshIndex = 0u, offset = 0u; meshIndex < scene->mNumMeshes;
+         ++meshIndex) {
+        // TODO: partial buffer filling directly from assimp buffers to cpu
+        // without memory copy
+        const auto* aimesh = scene->mMeshes[meshIndex];
+        result.vertices.insert(result.vertices.end(),
+            reinterpret_cast<glm::vec3*>(aimesh->mVertices),
+            reinterpret_cast<glm::vec3*>(aimesh->mVertices) +
+                aimesh->mNumVertices);
+        result.normals.insert(result.normals.end(),
+            reinterpret_cast<glm::vec3*>(aimesh->mNormals),
+            reinterpret_cast<glm::vec3*>(aimesh->mNormals) +
+                aimesh->mNumVertices);
         if (aimesh->HasTextureCoords(0)) {
             for (auto i = 0u; i < aimesh->mNumVertices; ++i) {
-                texcoords[i].x = aimesh->mTextureCoords[0][i].x;
-                texcoords[i].y = aimesh->mTextureCoords[0][i].y;
+                result.texcoords[i + offset].x = aimesh->mTextureCoords[0][i].x;
+                result.texcoords[i + offset].y = aimesh->mTextureCoords[0][i].y;
             }
         }
 
         std::vector<Mesh::Face> faces;
         faces.reserve(aimesh->mNumFaces * 3);
-
         for (auto i = 0u; i < aimesh->mNumFaces; ++i) {
-            faces.push_back(aimesh->mFaces[i].mIndices[0]);
-            faces.push_back(aimesh->mFaces[i].mIndices[1]);
-            faces.push_back(aimesh->mFaces[i].mIndices[2]);
+            const auto& face = aimesh->mFaces[i];
+            faces.push_back(face.mIndices[0] + offset);
+            faces.push_back(face.mIndices[1] + offset);
+            faces.push_back(face.mIndices[2] + offset);
         }
 
-        result.first.emplace_back(aimesh->mVertices, aimesh->mNormals,
-            texcoords.data(), aimesh->mNumVertices, faces.data(), faces.size(),
-            aimesh->mMaterialIndex);
+        result.meshes.emplace_back(
+            faces.data(), faces.size(), aimesh->mMaterialIndex);
+        offset += aimesh->mNumVertices;
     }
+
     return result;
 }
 

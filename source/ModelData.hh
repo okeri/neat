@@ -16,30 +16,17 @@
 
 #pragma once
 
-#include <string_view>
-
-#include <glm/mat4x4.hpp>
-
-#include "NoCopy.hh"
-#include "PImpl.hh"
+#include "Material.hh"
+#include "Mesh.hh"
 
 namespace neat {
 
-class Model : private NoCopy {
-    class Impl;
-
-    PImpl<Impl, 80, 8> pImpl_;
-
-  public:
-    explicit Model(std::string_view filename) noexcept;
-    Model(Model&& rhs) noexcept;
-    void render(const glm::mat4& mvp, const glm::mat4& mv,
-        const glm::mat4& nm) const noexcept;
-    [[nodiscard]] bool valid() const noexcept;
-    ~Model() noexcept;
-
-    static void setLight(unsigned index, const glm::vec3& position,
-        const glm::vec3& color) noexcept;
+struct ModelData {
+    std::vector<Material> materials;
+    std::vector<Mesh> meshes;
+    std::vector<glm::vec3> vertices;
+    std::vector<glm::vec3> normals;
+    std::vector<glm::vec2> texcoords;
 };
 
 }  // namespace neat
