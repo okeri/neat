@@ -15,7 +15,6 @@
 */
 
 #include <array>
-
 #include <Model.hh>
 
 #ifdef ENABLE_ASSIMP
@@ -29,70 +28,86 @@ namespace {
 // clang-format off
 const char* modelV = GLSL(
 
-layout (location = 0) in vec3 vertex;
+layout (location = 0) in vec3 position;
 layout (location = 1) in vec3 normal;
 layout (location = 2) in vec2 texcoord;
+layout (location = 3) in ivec4 bones;
+layout (location = 4) in vec4 weights;
+layout (location = 5) in mat4 model;
+
 
 struct Material {
-    vec3 diffuse;
     vec3 ambient;
+    vec3 diffuse;
     vec3 specular;
 };
 
-const int maxLightCount = 16;
+const uint maxLightCount = 16u;
 
-struct Light {
-    vec3 position;
+struct Sun {
     vec3 color;
+    vec3 direction;
 };
 
-uniform mat4 MVP;
-uniform mat4 MV;
-uniform mat4 NM;
+struct PointLight {
+    vec3 color;
+    vec3 position;
+    float attenuation;
+};
+
+uniform mat4 modelu;
+uniform mat4 view;
+uniform mat4 vp;
 uniform Material material;
-uniform Light lights[maxLightCount];
+uniform PointLight lights[maxLightCount];
+uniform Sun sun;
 
 out vec2 uv;
-out vec3 fragColor;
+out vec3 vertColor;
+
+vec3 calculateLight(vec3 vertPos, vec3 vertNorm, vec3 direction, vec3 color) {
+    vec3 lightVec = -normalize(direction);
+    vec3 refLightVec = normalize(reflect(direction, vertNorm));
+    vec3 diffuse = color * max(0., dot(vertNorm, lightVec));
+    vec3 specular = color * max(0., dot(refLightVec, lightVec));
+    return diffuse * material.diffuse + specular * material.specular;
+}
+
+vec3 calculatePointLight(uint index, vec3 vertPos, vec3 vertNorm) {
+    vec3 direction = position - lights[index].position;
+    float distance = length(direction);
+    float att = 1. + (lights[index].attenuation * distance * distance);
+    direction = normalize(direction);
+    return calculateLight(vertPos, vertNorm, direction, lights[index].color) / att;
+}
 
 void main() {
-    gl_Position = MVP * vec4(vertex, 1.0);
+    gl_Position = vp * model * vec4(position, 1.0);
     uv = texcoord;
 
-    vec4 vertPos4 = MV * vec4(vertex, 1.0);
-    vec3 vertPos = vec3(vertPos4) / vertPos4.w;
-    vec3 norm = vec3(NM * vec4(normal, 0.0));
+    mat4 mv = view * model;
+    vec3 vertPos = vec3(mv * vec4(position, 1.0));
+    vec3 vertNorm = vec3(mv * vec4(normal, 0.0));
 
-    vec3 color = material.ambient;
-    for (int light = 0; light < maxLightCount; ++light) {
-        if (lights[light].color == vec3(0.f,0.f,0.f)) {
-	    continue;
+    vertColor = material.ambient;
+    vertColor += calculateLight(vertPos, vertNorm, sun.direction, sun.color);
+    for (uint light = 0u; light < maxLightCount; ++light) {
+        if (lights[light].color != vec3(0.)) {
+            vertColor += calculatePointLight(light, vertPos, vertNorm);
         }
-        vec3 lightDir = normalize(lights[light].position - vertPos);
-        float lambertian = max(dot(lightDir, norm), 0.0);
-        float specular = 0.0;
-        if (lambertian > 0.0) {
-            vec3 viewDir = normalize(-vertPos);
-            vec3 reflectDir = reflect(-lightDir, norm);
-            float specAngle = max(dot(reflectDir, viewDir), 0.0);
-	    specular = specAngle * specAngle;
-        }
-         color += (material.diffuse  * lambertian +
-           material.specular * specular) * lights[light].color;
     }
-    fragColor = color;
 }
 );
 
 const char* modelF = GLSL(
 in vec2 uv;
-in vec3 fragColor;
+in vec3 vertColor;
 
 uniform sampler2D matTex;
 layout (location = 0) out vec4 color;
 
 void main() {
-  color = vec4(fragColor, 1.0) * texture(matTex, uv);
+    color = vec4(vertColor, 1.0) * texture(matTex, uv);
 }
 );
 
@@ -102,32 +117,62 @@ void main() {
 
 namespace neat {
 
+Program& modelProgram() noexcept;
 class Model::Impl : private GLResource {
-    enum BufferType : unsigned { Vertexes, Normals, TexCoords, Count };
-    std::array<Buffer, BufferType::Count> buffers_;
+    enum Type : unsigned {
+        Vertexes,
+        Normals,
+        TexCoords,
+        Bones,
+        Weights,
+        Model,
+        Count
+    };
+
+    std::array<Buffer, Type::Count> buffers_;
     std::vector<Mesh> meshes_;
     std::vector<Material> materials_;
 
   public:
     explicit Impl(ModelData&& data) noexcept :
         meshes_(std::move(data.meshes)), materials_(std::move(data.materials)) {
+        buffers_[Model] = Buffer(Buffer::Target::Array, true);
         glGenVertexArrays(1, &id_);
         glBindVertexArray(id_);
 
-        glEnableVertexAttribArray(Vertexes);
-        buffers_[Vertexes].bind();
-        buffers_[Vertexes].set(data.vertices);
-        glVertexAttribPointer(Vertexes, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
+        glEnableVertexAttribArray(Type::Vertexes);
+        buffers_[Type::Vertexes].bind();
+        buffers_[Type::Vertexes].set(data.vertices);
+        glVertexAttribPointer(
+            Type::Vertexes, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
 
-        glEnableVertexAttribArray(Normals);
-        buffers_[Normals].bind();
-        buffers_[Normals].set(data.normals);
-        glVertexAttribPointer(Normals, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
+        glEnableVertexAttribArray(Type::Normals);
+        buffers_[Type::Normals].bind();
+        buffers_[Type::Normals].set(data.normals);
+        glVertexAttribPointer(Type::Normals, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
 
-        glEnableVertexAttribArray(TexCoords);
-        buffers_[TexCoords].bind();
-        buffers_[TexCoords].set(data.texcoords);
-        glVertexAttribPointer(TexCoords, 2, GL_FLOAT, GL_FALSE, 0, nullptr);
+        glEnableVertexAttribArray(Type::TexCoords);
+        buffers_[Type::TexCoords].bind();
+        buffers_[Type::TexCoords].set(data.texcoords);
+        glVertexAttribPointer(
+            Type::TexCoords, 2, GL_FLOAT, GL_FALSE, 0, nullptr);
+
+        glEnableVertexAttribArray(Type::Bones);
+        buffers_[Type::Bones].bind();
+        glVertexAttribPointer(Type::Bones, 4, GL_INT, GL_FALSE, 0, nullptr);
+
+        glEnableVertexAttribArray(Type::Weights);
+        buffers_[Type::Weights].bind();
+        glVertexAttribPointer(Type::Weights, 4, GL_FLOAT, GL_FALSE, 0, nullptr);
+
+        buffers_[Type::Model].bind();
+        for (auto i = 0u; i < 4; ++i) {
+            glEnableVertexAttribArray(Type::Model + i);
+            glVertexAttribPointer(Type::Model + i, 4, GL_FLOAT, GL_FALSE,
+                sizeof(glm::mat4),
+                reinterpret_cast<const void*>(sizeof(glm::vec4) * i));
+            glVertexAttribDivisor(Type::Model + i, 1);
+        }
         glBindVertexArray(0);
     }
 
@@ -142,13 +187,23 @@ class Model::Impl : private GLResource {
         return !meshes_.empty() && !materials_.empty();
     }
 
-    void render(Program& program) const noexcept {
+    void setPos(const glm::mat4& pos) const noexcept {
+        buffers_[Model].bind();
+        buffers_[Model].set(glm::value_ptr(pos), sizeof(glm::mat4));
+    }
+
+    void setPos(const std::vector<glm::mat4>& pos) const noexcept {
+        buffers_[Model].bind();
+        buffers_[Model].set(pos);
+    }
+
+    void render(unsigned instances, Program& program) const noexcept {
         glBindVertexArray(id_);
         for (const auto& mesh : meshes_) {
             const auto& material = materials_[mesh.materialIndex()];
             mesh.bind();
             material.bind(program);
-            mesh.render();
+            mesh.render(instances);
         }
         glBindVertexArray(0);
     }
@@ -173,30 +228,59 @@ Model::Model(Model&& rhs) noexcept : pImpl_(std::move(rhs.pImpl_)) {
 Model::~Model() noexcept {
 }
 
-void Model::render(const glm::mat4& mvp, const glm::mat4& mv,
-    const glm::mat4& nm) const noexcept {
+void Model::render(unsigned instances) const noexcept {
     auto& program = modelProgram();
     program.use();
-    glUniform1i(program.uniform("matTex"), 0);
-    glUniformMatrix4fv(program.uniform("MVP"), 1, false, glm::value_ptr(mvp));
-    glUniformMatrix4fv(program.uniform("MV"), 1, false, glm::value_ptr(mv));
-    glUniformMatrix4fv(program.uniform("NM"), 1, false, glm::value_ptr(nm));
-    pImpl_->render(program);
+    pImpl_->render(instances, program);
 }
 
 bool Model::valid() const noexcept {
     return pImpl_->valid();
 }
 
+void Model::setPos(const glm::mat4& pos) const noexcept {
+    pImpl_->setPos(pos);
+}
+
+void Model::setPos(const std::vector<glm::mat4>& pos) const noexcept {
+    pImpl_->setPos(pos);
+}
+
 void Model::setLight(unsigned index, const glm::vec3& position,
-    const glm::vec3& color) noexcept {
+    const glm::vec3& color, float attenuation) noexcept {
     auto& program = modelProgram();
     auto pos = std::string("lights[") + std::to_string(index) + "].";
     auto col = pos + "color";
+    auto att = pos + "attenuation";
     pos += "position";
     program.use();
     glUniform3fv(program.uniform(pos.c_str()), 1, glm::value_ptr(position));
     glUniform3fv(program.uniform(col.c_str()), 1, glm::value_ptr(color));
+    glUniform1f(program.uniform(att.c_str()), attenuation);
+}
+
+void Model::setSun(
+    const glm::vec3& direction, const glm::vec3& color) noexcept {
+    auto& program = modelProgram();
+    program.use();
+    glUniform3fv(
+        program.uniform("sun.direction"), 1, glm::value_ptr(direction));
+    glUniform3fv(program.uniform("sun.color"), 1, glm::value_ptr(color));
+}
+
+void Model::setLightningShader(bool fragment) noexcept {
+    //    auto& program = modelProgram();
+    //  program.use();
+    // glUniform1ui(
+    //     program.uniform("fragmentLightning"),
+    //     static_cast<unsigned>(fragment));
+}
+
+void Model::setVP(const glm::mat4& v, const glm::mat4& p) noexcept {
+    auto& program = modelProgram();
+    program.use();
+    glUniformMatrix4fv(program.uniform("view"), 1, false, glm::value_ptr(v));
+    glUniformMatrix4fv(program.uniform("vp"), 1, false, glm::value_ptr(p * v));
 }
 
 }  // namespace neat

@@ -47,8 +47,9 @@ class Mesh : public Buffer {
         return materialIndex_;
     }
 
-    void render() const noexcept {
-        glDrawElements(GL_TRIANGLES, count_, GL_UNSIGNED_INT, nullptr);
+    void render(unsigned instances) const noexcept {
+        glDrawElementsInstanced(
+            GL_TRIANGLES, count_, GL_UNSIGNED_INT, nullptr, instances);
     }
 };
 

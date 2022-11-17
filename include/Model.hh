@@ -17,6 +17,7 @@
 #pragma once
 
 #include <string_view>
+#include <vector>
 
 #include <glm/mat4x4.hpp>
 
@@ -28,18 +29,25 @@ namespace neat {
 class Model : private NoCopy {
     class Impl;
 
-    PImpl<Impl, 80, 8> pImpl_;
+    PImpl<Impl, 128, 8> pImpl_;
 
   public:
     explicit Model(std::string_view filename) noexcept;
     Model(Model&& rhs) noexcept;
-    void render(const glm::mat4& mvp, const glm::mat4& mv,
-        const glm::mat4& nm) const noexcept;
-    [[nodiscard]] bool valid() const noexcept;
     ~Model() noexcept;
 
+    void setPos(const glm::mat4& pos) const noexcept;
+    void setPos(const std::vector<glm::mat4>& pos) const noexcept;
+    void render(unsigned instances = 1) const noexcept;
+
+    [[nodiscard]] bool valid() const noexcept;
+
     static void setLight(unsigned index, const glm::vec3& position,
-        const glm::vec3& color) noexcept;
+        const glm::vec3& color, float attenuation) noexcept;
+    static void setSun(
+        const glm::vec3& direction, const glm::vec3& color) noexcept;
+    static void setLightningShader(bool fragment) noexcept;
+    static void setVP(const glm::mat4& v, const glm::mat4& p) noexcept;
 };
 
 }  // namespace neat
