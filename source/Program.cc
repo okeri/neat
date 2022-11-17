@@ -42,7 +42,7 @@ GLuint compile(GLenum shaderType, const char* src) {
         if (size) {
             std::unique_ptr<char[]> buffer = std::make_unique<char[]>(size);
             glGetShaderInfoLog(shader, size, nullptr, buffer.get());
-            Log() << "Error: " << buffer.get();
+            Log() << buffer.get();
         }
 
         if (!compiled) {
@@ -67,7 +67,7 @@ GLuint program(AttachWraper wrapper) {
             if (size) {
                 std::unique_ptr<char[]> buffer = std::make_unique<char[]>(size);
                 glGetProgramInfoLog(program, size, nullptr, buffer.get());
-                Log() << "Error: " << buffer.get();
+                Log() << buffer.get();
             }
             wrapper(glDetachShader, program);
             glDeleteProgram(program);
