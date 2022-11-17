@@ -25,7 +25,8 @@ namespace neat {
 class Buffer : private GLResource {
   public:
     enum class Target : unsigned { Array = 0x8892, ElementArray = 0x8893 };
-    explicit Buffer(Target target = Target::Array) noexcept;
+    explicit Buffer(
+        Target target = Target::Array, bool dynamic = false) noexcept;
     Buffer(Buffer&& rhs) noexcept;
     ~Buffer();
     Buffer& operator=(Buffer&& rhs) noexcept;
@@ -43,6 +44,7 @@ class Buffer : private GLResource {
 
   private:
     Target target_;
+    bool dynamic_;
 };
 
 }  // namespace neat
