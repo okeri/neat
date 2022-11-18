@@ -65,18 +65,21 @@ out vec2 uv;
 out vec3 vertColor;
 
 vec3 calculateLight(vec3 vertPos, vec3 vertNorm, vec3 direction, vec3 color) {
-    vec3 lightVec = -normalize(direction);
-    vec3 refLightVec = normalize(reflect(direction, vertNorm));
-    vec3 diffuse = color * max(0., dot(vertNorm, lightVec));
-    vec3 specular = color * max(0., dot(refLightVec, lightVec));
-    return diffuse * material.diffuse + specular * material.specular;
+    vec3 lightVec = normalize(-direction);
+    vec3 viewVec = normalize(-vertPos);
+    vec3 halfWayVec = normalize(lightVec + viewVec);
+    float Kd = dot(vertNorm, lightVec);
+    vec3 diffuse = max(0., Kd) * color * material.diffuse;
+    if (Kd < 0.) {
+        return diffuse;
+    }
+    return diffuse + max(0., dot(halfWayVec, vertNorm)) * color * material.specular;
 }
 
 vec3 calculatePointLight(uint index, vec3 vertPos, vec3 vertNorm) {
     vec3 direction = position - lights[index].position;
     float distance = length(direction);
     float att = 1. + (lights[index].attenuation * distance * distance);
-    direction = normalize(direction);
     return calculateLight(vertPos, vertNorm, direction, lights[index].color) / att;
 }
 
