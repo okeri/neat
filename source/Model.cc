@@ -55,7 +55,6 @@ struct PointLight {
     float attenuation;
 };
 
-uniform mat4 modelu;
 uniform mat4 view;
 uniform mat4 vp;
 uniform Material material;
@@ -117,7 +116,6 @@ void main() {
 
 namespace neat {
 
-Program& modelProgram() noexcept;
 class Model::Impl : private GLResource {
     enum Type : unsigned {
         Vertexes,
@@ -129,6 +127,16 @@ class Model::Impl : private GLResource {
         Count
     };
 
+    class VAOBinder {
+      public:
+        explicit VAOBinder(unsigned id) noexcept {
+            glBindVertexArray(id);
+        }
+        ~VAOBinder() noexcept {
+            glBindVertexArray(0);
+        }
+    };
+
     std::array<Buffer, Type::Count> buffers_;
     std::vector<Mesh> meshes_;
     std::vector<Material> materials_;
@@ -138,8 +146,8 @@ class Model::Impl : private GLResource {
         meshes_(std::move(data.meshes)), materials_(std::move(data.materials)) {
         buffers_[Model] = Buffer(Buffer::Target::Array, true);
         glGenVertexArrays(1, &id_);
-        glBindVertexArray(id_);
 
+        VAOBinder bind(id_);
         glEnableVertexAttribArray(Type::Vertexes);
         buffers_[Type::Vertexes].bind();
         buffers_[Type::Vertexes].set(data.vertices);
@@ -198,14 +206,12 @@ class Model::Impl : private GLResource {
     }
 
     void render(unsigned instances, Program& program) const noexcept {
-        glBindVertexArray(id_);
+        VAOBinder bind(id_);
         for (const auto& mesh : meshes_) {
-            const auto& material = materials_[mesh.materialIndex()];
+            materials_[mesh.materialIndex()].bind(program);
             mesh.bind();
-            material.bind(program);
             mesh.render(instances);
         }
-        glBindVertexArray(0);
     }
 
     ~Impl() noexcept {
