@@ -31,10 +31,34 @@ const char* modelV = GLSL(
 layout (location = 0) in vec3 position;
 layout (location = 1) in vec3 normal;
 layout (location = 2) in vec2 texcoord;
-layout (location = 3) in ivec4 bones;
+layout (location = 3) in ivec4 boneids;
 layout (location = 4) in vec4 weights;
 layout (location = 5) in mat4 model;
 
+const uint maxBones = 128u;
+
+
+uniform mat4 view;
+uniform mat4 vp;
+
+out vec2 uv;
+out vec4 vertPos;
+out vec4 vertNorm;
+
+void main() {
+    mat4 mv = view * model;
+    mat4 boneTrans = mat4(1.);
+    vec4 pos = boneTrans * vec4(position, 1.0);
+    vertPos = mv * pos;
+    vertNorm = mv * (boneTrans * vec4(normal, 0.0));
+    gl_Position = vp * model * pos;
+    uv = texcoord;
+}
+);
+
+const char* modelF = GLSL(
+
+layout (location = 0) out vec4 color;
 
 struct Material {
     vec3 ambient;
@@ -55,60 +79,46 @@ struct PointLight {
     float attenuation;
 };
 
+uniform sampler2D matTex;
 uniform mat4 view;
-uniform mat4 vp;
 uniform Material material;
 uniform PointLight lights[maxLightCount];
 uniform Sun sun;
 
-out vec2 uv;
-out vec3 vertColor;
+in vec2 uv;
+in vec4 vertPos;
+in vec4 vertNorm;
 
-vec3 calculateLight(vec3 vertPos, vec3 vertNorm, vec3 direction, vec3 color) {
-    vec3 lightVec = normalize(-direction);
-    vec3 viewVec = normalize(-vertPos);
-    vec3 halfWayVec = normalize(lightVec + viewVec);
-    float Kd = dot(vertNorm, lightVec);
+vec3 calculateLight(vec4 direction, vec3 color) {
+    vec4 lightDir = normalize(-direction);
+    float Kd = dot(vertNorm, lightDir);
     vec3 diffuse = max(0., Kd) * color * material.diffuse;
     if (Kd < 0.) {
         return diffuse;
     }
-    return diffuse + max(0., dot(halfWayVec, vertNorm)) * color * material.specular;
+    vec4 halfWayDir = lightDir + normalize(-vertPos);
+    return diffuse + max(0., dot(vertNorm, halfWayDir)) * color * material.specular;
 }
 
-vec3 calculatePointLight(uint index, vec3 vertPos, vec3 vertNorm) {
-    vec3 direction = position - lights[index].position;
+vec3 calculatePointLight(uint index) {
+    vec4 direction = vertPos - (view * vec4(lights[index].position,1.0));
     float distance = length(direction);
     float att = 1. + (lights[index].attenuation * distance * distance);
-    return calculateLight(vertPos, vertNorm, direction, lights[index].color) / att;
+    return calculateLight(direction, lights[index].color) / att;
 }
 
 void main() {
-    gl_Position = vp * model * vec4(position, 1.0);
-    uv = texcoord;
-
-    mat4 mv = view * model;
-    vec3 vertPos = vec3(mv * vec4(position, 1.0));
-    vec3 vertNorm = vec3(mv * vec4(normal, 0.0));
-
-    vertColor = material.ambient;
-    vertColor += calculateLight(vertPos, vertNorm, sun.direction, sun.color);
+    vec3 vertColor = material.ambient;
+    if (sun.color != vec3(0.)) {
+        vertColor += calculateLight(vec4(sun.direction,1.), sun.color);
+    }
     for (uint light = 0u; light < maxLightCount; ++light) {
         if (lights[light].color != vec3(0.)) {
-            vertColor += calculatePointLight(light, vertPos, vertNorm);
-        }
+            vertColor += calculatePointLight(light);
+        } else {
+     	    break;
+	}
     }
-}
-);
-
-const char* modelF = GLSL(
-in vec2 uv;
-in vec3 vertColor;
-
-uniform sampler2D matTex;
-layout (location = 0) out vec4 color;
-
-void main() {
     color = vec4(vertColor, 1.0) * texture(matTex, uv);
 }
 );
@@ -118,6 +128,12 @@ void main() {
 }  // namespace
 
 namespace neat {
+
+Program& modelProgram() noexcept {
+    static auto program =
+        Program({{GL_FRAGMENT_SHADER, modelF}, {GL_VERTEX_SHADER, modelV}});
+    return program;
+}
 
 class Model::Impl : private GLResource {
     enum Type : unsigned {
@@ -208,8 +224,11 @@ class Model::Impl : private GLResource {
         buffers_[Model].set(pos);
     }
 
-    void render(unsigned instances, Program& program) const noexcept {
+    void render(unsigned instances) const noexcept {
         VAOBinder bind(id_);
+        auto& program = modelProgram();
+        program.use();
+
         for (const auto& mesh : meshes_) {
             materials_[mesh.materialIndex()].bind(program);
             mesh.bind();
@@ -222,12 +241,6 @@ class Model::Impl : private GLResource {
     }
 };
 
-Program& modelProgram() noexcept {
-    static auto program =
-        Program({{GL_FRAGMENT_SHADER, modelF}, {GL_VERTEX_SHADER, modelV}});
-    return program;
-}
-
 Model::Model(std::string_view filename) noexcept : pImpl_(loadModel(filename)) {
 }
 
@@ -238,9 +251,7 @@ Model::~Model() noexcept {
 }
 
 void Model::render(unsigned instances) const noexcept {
-    auto& program = modelProgram();
-    program.use();
-    pImpl_->render(instances, program);
+    pImpl_->render(instances);
 }
 
 bool Model::valid() const noexcept {
@@ -275,14 +286,6 @@ void Model::setSun(
     glUniform3fv(
         program.uniform("sun.direction"), 1, glm::value_ptr(direction));
     glUniform3fv(program.uniform("sun.color"), 1, glm::value_ptr(color));
-}
-
-void Model::setLightningShader(bool fragment) noexcept {
-    //    auto& program = modelProgram();
-    //  program.use();
-    // glUniform1ui(
-    //     program.uniform("fragmentLightning"),
-    //     static_cast<unsigned>(fragment));
 }
 
 void Model::setVP(const glm::mat4& v, const glm::mat4& p) noexcept {

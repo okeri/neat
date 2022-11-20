@@ -46,7 +46,6 @@ class Model : private NoCopy {
         const glm::vec3& color, float attenuation) noexcept;
     static void setSun(
         const glm::vec3& direction, const glm::vec3& color) noexcept;
-    static void setLightningShader(bool fragment) noexcept;
     static void setVP(const glm::mat4& v, const glm::mat4& p) noexcept;
 };
 
