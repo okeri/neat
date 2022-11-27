@@ -25,7 +25,6 @@ class Image {
     std::size_t size_;
     uint32_t width_;
     uint32_t height_;
-    void load(const void* data, std::size_t size) noexcept;
 
   public:
     Image(const void* data, std::size_t size) noexcept;

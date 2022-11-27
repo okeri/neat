@@ -32,7 +32,8 @@ struct PngBuf {
 void cbread(void* data, uint8_t* dst, size_t size) {
     auto* buffer =
         static_cast<PngBuf*>(png_get_io_ptr(static_cast<png_structp>(data)));
-    memcpy(dst, buffer->data + buffer->offset, size);
+    std::copy(buffer->data + buffer->offset,
+        buffer->data + buffer->offset + size, dst);
     buffer->offset += size;
 }
 
@@ -40,22 +41,8 @@ void cbread(void* data, uint8_t* dst, size_t size) {
 
 namespace neat {
 
-// NOLINTNEXTLINE:hicpp-member-init
-Image::Image(const void* data, size_t size) noexcept {
-    load(data, size);
-}
-
-Image::Image(Image&& other) noexcept {
-    if (other.valid()) {
-        data_ = other.data_;
-        size_ = other.size_;
-        width_ = other.width_;
-        height_ = other.height_;
-        other.size_ = 0;
-    }
-}
-
-void Image::load(const void* data, size_t size) noexcept {
+Image::Image(const void* data, size_t size) noexcept :
+    size_(0), width_(0), height_(0) {
     if (size == 0) {
         return;
     }
@@ -65,7 +52,7 @@ void Image::load(const void* data, size_t size) noexcept {
 
     PngBuf buffer{static_cast<const uint8_t*>(data), 0, size};
     png_set_read_fn(pngPtr, &buffer, reinterpret_cast<png_rw_ptr>(cbread));
-    size_ = 0;
+
     if (setjmp(png_jmpbuf(pngPtr))) {
         png_destroy_read_struct(&pngPtr, &infoPtr, nullptr);
         return;
@@ -105,10 +92,8 @@ void Image::load(const void* data, size_t size) noexcept {
         data_ = new uint8_t[size_];
 
         std::vector<png_bytep> row_ptrs(height_);
-
-        png_uint_32 i;
-        for (i = 0; i < height_; i++) {
-            row_ptrs[i] = data_ + i * row_size;
+        for (auto i = 0u, row = 0u; i < height_; i++, row += row_size) {
+            row_ptrs[i] = data_ + row;
         }
         png_read_image(pngPtr, row_ptrs.data());
     }
@@ -116,6 +101,16 @@ void Image::load(const void* data, size_t size) noexcept {
     // free
     png_read_end(pngPtr, infoPtr);
     png_destroy_read_struct(&pngPtr, &infoPtr, nullptr);
+}
+
+Image::Image(Image&& other) noexcept {
+    if (other.valid()) {
+        data_ = other.data_;
+        size_ = other.size_;
+        width_ = other.width_;
+        height_ = other.height_;
+        other.size_ = 0;
+    }
 }
 
 uint32_t Image::width() const noexcept {
