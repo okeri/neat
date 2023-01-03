@@ -18,6 +18,8 @@
 #include <chrono>
 #include <atomic>
 #include <csignal>
+#include <memory>
+#include <stdexcept>
 
 #include <X11/Xlib.h>
 #include <GL/glx.h>
@@ -39,7 +41,7 @@ class X11Window : private NoCopy {
     int y_;
 
   public:
-    X11Window() : stop_(false) {
+    X11Window(int argc, char* argv[]) : stop_(false) {
         if (XInitThreads() == 0) {
             throw std::runtime_error("could not init threads");
         }
@@ -70,7 +72,7 @@ class X11Window : private NoCopy {
             CWBackPixel | CWColormap | CWEventMask, &wa);
         context_ = glXCreateContext(display_, visual_, nullptr, GL_TRUE);
         glXMakeCurrent(display_, window_, context_);
-        init(settings_.width, settings_.height);
+        init(argc, argv);
     }
 
     ~X11Window() {
@@ -127,7 +129,9 @@ class X11Window : private NoCopy {
 
             glXSwapBuffers(display_, window_);
         }
-        eventThread.join();
+        if (eventThread.joinable()) {
+            eventThread.join();
+        }
         return 0;
     }
 
@@ -136,13 +140,14 @@ class X11Window : private NoCopy {
     }
 };
 
-X11Window wnd;
+std::unique_ptr<X11Window> wnd;
 
 void sigHandler([[maybe_unused]] int sig) {
-    wnd.stop();
+    wnd->stop();
 }
 
-int main([[maybe_unused]] int argc, [[maybe_unused]] char** argv) {
+int main(int argc, char* argv[]) {
     signal(SIGINT, sigHandler);
-    return wnd.loop();
+    wnd = std::make_unique<X11Window>(argc, argv);
+    return wnd->loop();
 }

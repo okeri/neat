@@ -57,3 +57,7 @@ libneat = static_library('neat',
 			 dependencies: deps)
 
 neat = declare_dependency(link_with: libneat, include_directories: includes)
+
+if get_option('modelview').enabled()
+  subdir('tools/modelview')
+endif

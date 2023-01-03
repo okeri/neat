@@ -34,6 +34,6 @@ void queryData(NeatWindowData* data);
 #error "Unknown target"
 #endif  // ANDROID
 
-void init(int width, int heigth);
+void init(int argc, char* argv[]);
 int action(neat::Actions act, int x, int y);
 void draw(uint64_t);

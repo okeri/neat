@@ -19,6 +19,7 @@
 #include <atomic>
 #include <chrono>
 #include <csignal>
+#include <memory>
 
 #include <linux/input.h>
 #include <EGL/egl.h>
@@ -43,7 +44,7 @@ class WaylandWindow : private NoCopy {
     wl_cursor_theme* cursor_theme_;
     wl_cursor* default_cursor_;
     wl_surface* cursor_surface_;
-    wl_pointer* pointer_;
+    wl_pointer* pointer_{};
     wl_seat* seat_;
 
     xdg_wm_base* shell_;
@@ -56,14 +57,13 @@ class WaylandWindow : private NoCopy {
     EGLConfig conf_;
 
     std::atomic_bool stop_;
-    bool configured_;
 
     bool pressed_;
     int x_;
     int y_;
 
   public:
-    WaylandWindow() : stop_(false) {
+    WaylandWindow(int argc, char* argv[]) : stop_(false) {
         static const wl_pointer_listener pointer_listener = {
             [](void* data, wl_pointer* pointer, uint32_t serial, wl_surface*,
                 wl_fixed_t, wl_fixed_t) {
@@ -104,7 +104,11 @@ class WaylandWindow : private NoCopy {
                 }
             },
             [](void*, struct wl_pointer*, uint32_t, uint32_t, wl_fixed_t) {},
-            nullptr, nullptr, nullptr, nullptr, nullptr};
+            [](void*, struct wl_pointer*) {},
+            [](void*, struct wl_pointer*, uint32_t) {},
+            [](void*, struct wl_pointer*, uint32_t, uint32_t) {},
+            [](void*, struct wl_pointer*, uint32_t, int32_t) {},
+            [](void*, struct wl_pointer*, uint32_t, int32_t) {}};
 
         static const wl_seat_listener seat_listener = {
             [](void* data, wl_seat* seat, unsigned caps) {
@@ -113,13 +117,9 @@ class WaylandWindow : private NoCopy {
                     window->pointer_ = wl_seat_get_pointer(seat);
                     wl_pointer_add_listener(
                         window->pointer_, &pointer_listener, window);
-                } else if (!(caps & WL_SEAT_CAPABILITY_POINTER) &&
-                           window->pointer_) {
-                    wl_pointer_destroy(window->pointer_);
-                    window->pointer_ = nullptr;
                 }
             },
-            nullptr};
+            [](void*, struct wl_seat*, const char*) {}};
 
         static const xdg_wm_base_listener xdg_wm_base_listener = {
             [](void*, struct xdg_wm_base* shell, uint32_t serial) {
@@ -133,17 +133,17 @@ class WaylandWindow : private NoCopy {
                 if (strcmp(interface, wl_compositor_interface.name) == 0) {
                     window->compositor_ =
                         reinterpret_cast<wl_compositor*>(wl_registry_bind(
-                            registry, id, &wl_compositor_interface, 1));
+                            registry, id, &wl_compositor_interface, 4));
                 } else if (strcmp(interface, xdg_wm_base_interface.name) == 0) {
                     window->shell_ =
                         reinterpret_cast<xdg_wm_base*>(wl_registry_bind(
-                            registry, id, &xdg_wm_base_interface, 1));
+                            registry, id, &xdg_wm_base_interface, 2));
                     xdg_wm_base_add_listener(
                         window->shell_, &xdg_wm_base_listener, data);
 
                 } else if (strcmp(interface, wl_seat_interface.name) == 0) {
                     window->seat_ = reinterpret_cast<wl_seat*>(
-                        wl_registry_bind(registry, id, &wl_seat_interface, 1));
+                        wl_registry_bind(registry, id, &wl_seat_interface, 7));
                     wl_seat_add_listener(window->seat_, &seat_listener, window);
                 } else if (strcmp(interface, wl_shm_interface.name) == 0) {
                     auto* shm = reinterpret_cast<wl_shm*>(
@@ -157,15 +157,18 @@ class WaylandWindow : private NoCopy {
             nullptr};
 
         static const xdg_surface_listener xdg_surface_listener = {
-            [](void* data, xdg_surface* surface, uint32_t serial) {
-                auto* window = reinterpret_cast<WaylandWindow*>(data);
+            [](void*, xdg_surface* surface, uint32_t serial) {
                 xdg_surface_ack_configure(surface, serial);
-                window->configured_ = true;
             }};
 
         static const xdg_toplevel_listener xdg_toplevel_listener = {
             [](void*, xdg_toplevel*, int32_t, int32_t, struct wl_array*) {},
-            [](void*, xdg_toplevel*) {}, nullptr, nullptr};
+            [](void* data, xdg_toplevel*) {
+                auto* window = reinterpret_cast<WaylandWindow*>(data);
+                window->stop();
+            },
+            [](void*, struct xdg_toplevel*, int32_t, int32_t) {},
+            [](void*, struct xdg_toplevel*, struct wl_array*) {}};
 
         queryData(&settings_);
         display_ = wl_display_connect(nullptr);
@@ -181,6 +184,16 @@ class WaylandWindow : private NoCopy {
         if (!compositor_ || !shell_) {
             throw std::runtime_error("Can't init wayland window");
         }
+
+        surface_ = wl_compositor_create_surface(compositor_);
+        xdg_surface_ = xdg_wm_base_get_xdg_surface(shell_, surface_);
+        toplevel_ = xdg_surface_get_toplevel(xdg_surface_);
+
+        xdg_surface_add_listener(xdg_surface_, &xdg_surface_listener, this);
+        xdg_toplevel_add_listener(toplevel_, &xdg_toplevel_listener, this);
+        xdg_toplevel_set_title(toplevel_, settings_.caption);
+        cursor_surface_ = wl_compositor_create_surface(compositor_);
+        wl_surface_commit(surface_);
 
         static const EGLint context_attribs[] = {
             EGL_CONTEXT_CLIENT_VERSION, 3, EGL_NONE};
@@ -198,28 +211,14 @@ class WaylandWindow : private NoCopy {
         eglChooseConfig(dpy_, config_attribs, &conf_, 1, &n);
         ctx_ = eglCreateContext(dpy_, conf_, EGL_NO_CONTEXT, context_attribs);
 
-        surface_ = wl_compositor_create_surface(compositor_);
-        xdg_surface_ = xdg_wm_base_get_xdg_surface(shell_, surface_);
-        toplevel_ = xdg_surface_get_toplevel(xdg_surface_);
-
-        xdg_surface_add_listener(xdg_surface_, &xdg_surface_listener, this);
-        xdg_toplevel_add_listener(toplevel_, &xdg_toplevel_listener, nullptr);
-        xdg_toplevel_set_title(toplevel_, settings_.caption);
-        cursor_surface_ = wl_compositor_create_surface(compositor_);
-        configured_ = false;
-        wl_surface_commit(surface_);
-
         window_ =
             wl_egl_window_create(surface_, settings_.width, settings_.height);
         egl_surface_ = eglCreateWindowSurface(dpy_, conf_,
             reinterpret_cast<EGLNativeWindowType>(window_), nullptr);
 
-        wl_display_roundtrip(display_);
-        wl_surface_commit(surface_);
-
         eglMakeCurrent(dpy_, egl_surface_, egl_surface_, ctx_);
 
-        init(settings_.width, settings_.height);
+        init(argc, argv);
     }
 
     ~WaylandWindow() {
@@ -247,22 +246,13 @@ class WaylandWindow : private NoCopy {
         wl_display_disconnect(display_);
     }
 
-    void draw() {
-        ::draw(std::chrono::system_clock::now().time_since_epoch() /
-               std::chrono::milliseconds(1));
-        wl_surface_frame(surface_);
-        eglSwapBuffers(dpy_, egl_surface_);
-    }
-
     int loop() {
         int ret;
         while (!stop_ && ret != -1) {
-            if (configured_) {
-                ret = wl_display_dispatch_pending(display_);
-                draw();
-            } else {
-                ret = wl_display_dispatch(display_);
-            }
+            ret = wl_display_dispatch_pending(display_);
+            draw(std::chrono::system_clock::now().time_since_epoch() /
+                 std::chrono::milliseconds(1));
+            eglSwapBuffers(dpy_, egl_surface_);
         }
         return 0;
     }
@@ -272,13 +262,14 @@ class WaylandWindow : private NoCopy {
     }
 };
 
-WaylandWindow wnd;
+std::unique_ptr<WaylandWindow> wnd;
 
 void sigHandler([[maybe_unused]] int sig) {
-    wnd.stop();
+    wnd->stop();
 }
 
-int main([[maybe_unused]] int argc, [[maybe_unused]] char** argv) {
+int main(int argc, char** argv) {
     signal(SIGINT, sigHandler);
-    return wnd.loop();
+    wnd = std::make_unique<WaylandWindow>(argc, argv);
+    return wnd->loop();
 }

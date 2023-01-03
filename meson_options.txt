@@ -1,2 +1,3 @@
 option('assimp', type : 'feature', value : 'auto')
+option('modelview', type : 'feature', value : 'disabled')
 option('platform', type : 'combo', choices : ['wayland', 'x11', 'android'], value : 'wayland')
