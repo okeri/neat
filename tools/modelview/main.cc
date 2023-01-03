@@ -7,7 +7,6 @@
 
 static constexpr auto Width = 1920;
 static constexpr auto Height = 1080;
-static constexpr auto Dpi = 250;
 
 static std::unique_ptr<App> _app;
 
@@ -26,7 +25,6 @@ int action(neat::Actions act, int x, int y) {
 void queryData(NeatWindowData* data) {
     data->width = Width;
     data->height = Height;
-    data->dpi = Dpi;
     data->caption = "Model Viewer";
     neat::Log::tag = data->caption;
 }

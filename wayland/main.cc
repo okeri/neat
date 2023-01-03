@@ -35,7 +35,6 @@
 using namespace neat;
 
 class WaylandWindow : private NoCopy {
-    NeatWindowData settings_;
     wl_display* display_;
     wl_compositor* compositor_;
     wl_surface* surface_;
@@ -54,16 +53,34 @@ class WaylandWindow : private NoCopy {
     EGLSurface egl_surface_;
     EGLDisplay dpy_;
     EGLContext ctx_;
-    EGLConfig conf_;
+    EGLConfig conf_{};
 
-    std::atomic_bool stop_;
+    NeatWindowData settings_{};
+    std::atomic_bool stop_{};
+    bool pressed_{};
+    int x_{};
+    int y_{};
 
-    bool pressed_;
-    int x_;
-    int y_;
+    void setX(wl_fixed_t value) {
+        x_ = static_cast<int>(wl_fixed_to_double(value));
+    }
+
+    void setY(wl_fixed_t value) {
+        y_ = settings_.height - static_cast<int>(wl_fixed_to_double(value));
+    }
+
+    void action(Actions act, int x, int y) {
+        if (::action(act, x, y) == 1) {
+            stop();
+        }
+    }
+
+    void action(Actions act) {
+        action(act, x_, y_);
+    }
 
   public:
-    WaylandWindow(int argc, char* argv[]) : stop_(false) {
+    WaylandWindow(int argc, char* argv[]) {
         static const wl_pointer_listener pointer_listener = {
             [](void* data, wl_pointer* pointer, uint32_t serial, wl_surface*,
                 wl_fixed_t, wl_fixed_t) {
@@ -81,13 +98,10 @@ class WaylandWindow : private NoCopy {
             [](void* data, wl_pointer*, uint32_t, wl_fixed_t sx,
                 wl_fixed_t sy) {
                 auto* window = reinterpret_cast<WaylandWindow*>(data);
-                window->x_ = sx;
-                window->y_ = sy;
+                window->setX(sx);
+                window->setY(sy);
                 if (window->pressed_) {
-                    if (action(Actions::Move, sx / window->settings_.dpi,
-                            sy / window->settings_.dpi) == 1) {
-                        window->stop();
-                    }
+                    window->action(Actions::Move);
                 }
             },
             [](void* data, wl_pointer*, [[maybe_unused]] uint32_t serial,
@@ -95,15 +109,19 @@ class WaylandWindow : private NoCopy {
                 auto* window = reinterpret_cast<WaylandWindow*>(data);
                 if (button == BTN_LEFT) {
                     window->pressed_ = state == WL_POINTER_BUTTON_STATE_PRESSED;
-                    if (action(window->pressed_ ? Actions::TouchDown
-                                                : Actions::TouchUp,
-                            window->x_ / window->settings_.dpi,
-                            window->y_ / window->settings_.dpi) == 1) {
-                        window->stop();
-                    }
+                    window->action(window->pressed_ ? Actions::TouchDown
+                                                    : Actions::TouchUp);
                 }
             },
-            [](void*, struct wl_pointer*, uint32_t, uint32_t, wl_fixed_t) {},
+            [](void* data, struct wl_pointer*, uint32_t, uint32_t a,
+                wl_fixed_t v) {
+                auto* window = reinterpret_cast<WaylandWindow*>(data);
+                if (a) {
+                    window->action(Actions::Zoom, wl_fixed_to_double(v), 0);
+                } else {
+                    window->action(Actions::Zoom, 0, wl_fixed_to_double(v));
+                }
+            },
             [](void*, struct wl_pointer*) {},
             [](void*, struct wl_pointer*, uint32_t) {},
             [](void*, struct wl_pointer*, uint32_t, uint32_t) {},

@@ -24,7 +24,6 @@
 struct NeatWindowData {
     int width;
     int height;
-    int dpi;
     const char* caption;
 };
 
