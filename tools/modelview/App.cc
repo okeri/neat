@@ -1,4 +1,18 @@
-// Copyright 2023 Keri Oleg
+/*
+    neat - simple graphics engine
+    This library is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This library is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program.  If not, see <https://www.gnu.org/licenses/>.
+*/
 
 #include <optional>
 #include <GLES3/gl3.h>
@@ -36,13 +50,16 @@ int App::action(neat::Actions action, int x, int y) {  // NOLINT
     switch (action) {
         case neat::Actions::Back:
             return 1;
+
         case neat::Actions::TouchDown:
             pressed = std::make_pair(x, y);
             break;
+
         case neat::Actions::TouchUp:
             pressed = std::nullopt;
             pos_ = movePos;
             break;
+
         case neat::Actions::Move:
             if (pressed) {
                 movePos = glm::rotate(pos_,
