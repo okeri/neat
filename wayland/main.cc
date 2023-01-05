@@ -66,7 +66,7 @@ class WaylandWindow : private NoCopy {
     }
 
     void setY(wl_fixed_t value) {
-        y_ = settings_.height - static_cast<int>(wl_fixed_to_double(value));
+        y_ = static_cast<int>(wl_fixed_to_double(value));
     }
 
     void action(Actions act, int x, int y) {
